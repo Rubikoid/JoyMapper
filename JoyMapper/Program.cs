@@ -19,4 +19,8 @@ namespace JoyMapper
             Application.Run(new MainForm());
         }
     }
+
+    public static class Utils {
+
+    }
 }

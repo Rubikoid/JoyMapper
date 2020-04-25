@@ -13,5 +13,7 @@ namespace JoyMapper
         IList<Guid> SupportedFFBEffects { get; }
         void Connect();
         void Disconnect();
+        void FillInfo(ref State state);
+        void UpdateInfo(in State state);
     }
 }
