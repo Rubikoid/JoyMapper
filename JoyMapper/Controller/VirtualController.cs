@@ -11,20 +11,7 @@ namespace JoyMapper {
     /**
      * A wrapper around the vJoy Joystick class.
      **/
-    class VirtualController : IController {
-        public enum JoystickCapabilities {
-            AXIS_X,
-            AXIS_Y,
-            AXIS_Z,
-            AXIS_RX,
-            AXIS_RY,
-            AXIS_RZ,
-            POV,
-            SLIDER_0,
-            SLIDER_1,
-            WHEEL
-        }
-
+    public class VirtualController : IController {
         private static Dictionary<FFBEType, Guid> virtualEffectGuidMap = new Dictionary<FFBEType, Guid>
         {
             { FFBEType.ET_CONST, EffectGuid.ConstantForce },
@@ -39,7 +26,6 @@ namespace JoyMapper {
             { FFBEType.ET_INRT, EffectGuid.Inertia },
             { FFBEType.ET_FRCTN, EffectGuid.Friction }
         };
-
         private static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
         {
             { FFBEType.ET_CONST, 0x26 },
@@ -56,16 +42,17 @@ namespace JoyMapper {
         };
 
         public uint ID { get; private set; }
+        public string Name { get { return $"vJoy[{ID}]"; } }
         public bool Connected { get; private set; } = false;
+
         public List<JoystickCapabilities> Capabilities { get; private set; }
         public int ButtonCount { get; private set; }
         public int ContinuousPOVCount { get; private set; }
         public int DirectionalPOVCount { get; private set; }
-        public IList<Guid> SupportedFFBEffects { get; private set; } = new List<Guid>();
+        public IList<Guid> SupportedFFBEffects { get; private set; }
 
         public delegate void FFBDataReceiveEventHandler(object sender, FFBEventArgs e);
         public event FFBDataReceiveEventHandler FFBDataReceived;
-
         private VirtualFFBPacketHandler ffbPacketHandler;
 
         public vJoy joystick;
@@ -74,10 +61,10 @@ namespace JoyMapper {
             this.ID = ID;
             this.joystick = new vJoy();
             if (!joystick.vJoyEnabled()) {
-                Console.WriteLine("vJoy driver not enabled: Failed Getting vJoy attributes.\n");
+                Console.WriteLine("vJoy driver not enabled: Failed Getting vJoy attributes.");
                 return;
             } else
-                Console.WriteLine("Vendor: {0}\nProduct :{1}\nVersion Number:{2}\n",
+                Console.WriteLine("Vendor: {0}\nProduct :{1}\nVersion Number:{2}",
                     joystick.GetvJoyManufacturerString(),
                     joystick.GetvJoyProductString(),
                     joystick.GetvJoySerialNumberString()
@@ -90,26 +77,26 @@ namespace JoyMapper {
                 VjdStat status = this.joystick.GetVJDStatus(this.ID);
                 switch (status) {
                     case VjdStat.VJD_STAT_OWN:
-                        Console.WriteLine("vJoy Device {0} is already owned by this feeder\n", this.ID);
+                        Console.WriteLine("vJoy Device {0} is already owned by this feeder", this.ID);
                         break;
                     case VjdStat.VJD_STAT_FREE:
-                        Console.WriteLine("vJoy Device {0} is free\n", this.ID);
+                        Console.WriteLine("vJoy Device {0} is free", this.ID);
                         break;
                     case VjdStat.VJD_STAT_BUSY:
-                        Console.WriteLine("vJoy Device {0} is already owned by another feeder\nCannot continue\n", this.ID);
+                        Console.WriteLine("vJoy Device {0} is already owned by another feeder\nCannot continue", this.ID);
                         return;
                     case VjdStat.VJD_STAT_MISS:
-                        Console.WriteLine("vJoy Device {0} is not installed or disabled\nCannot continue\n", this.ID);
+                        Console.WriteLine("vJoy Device {0} is not installed or disabled\nCannot continue", this.ID);
                         return;
                     default:
-                        Console.WriteLine("vJoy Device {0} general error\nCannot continue\n", this.ID);
+                        Console.WriteLine("vJoy Device {0} general error\nCannot continue", this.ID);
                         return;
                 };
 
                 // check driver version against local DLL version
                 uint DllVer = 0, DrvVer = 0;
                 if (!this.joystick.DriverMatch(ref DllVer, ref DrvVer)) {
-                    Console.WriteLine(String.Format("Version of vJoy Driver ({0:X}) does not match vJoy DLL Version ({1:X})!\n", DrvVer, DllVer));
+                    Console.WriteLine(String.Format("Version of vJoy Driver ({0:X}) does not match vJoy DLL Version ({1:X})!", DrvVer, DllVer));
                 }
 
                 this.loadCapabilities();
@@ -121,7 +108,7 @@ namespace JoyMapper {
                     Console.WriteLine("Acquired: vJoy device number {0}.", this.ID);
 
                 if (this.SupportedFFBEffects.Count > 0) {
-                    //this.ffbPacketHandler = new VirtualFFBPacketHandler(this.joystick);
+                    this.ffbPacketHandler = new VirtualFFBPacketHandler(this.joystick);
                     //this.joystick.FfbRegisterGenCB(this.OnVirtualFFBDataReceived, null);
                 }
 
@@ -149,22 +136,22 @@ namespace JoyMapper {
             vJoy.JoystickState state = new vJoy.JoystickState();
             state.bDevice = (byte)this.ID;
 
-            //state.AxisX = inState.AxisX.getVal();
-            //state.AxisY = inState.AxisY.getVal();
-            //state.AxisZ = inState.AxisZ.getVal();
+            state.AxisX = inState.AxisX.getVal();
+            state.AxisY = inState.AxisY.getVal();
+            state.AxisZ = inState.AxisZ.getVal();
 
             state.AxisXRot = inState.AxisXR.getVal();
-            //state.AxisYRot = inState.AxisYR.getVal();
-            //state.AxisZRot = inState.AxisZR.getVal();
+            state.AxisYRot = inState.AxisYR.getVal();
+            state.AxisZRot = inState.AxisZR.getVal();
 
             state.Buttons = 0;
             state.ButtonsEx1 = 0;
 
-            for (int i = 0; i < inState.buttons.Length; i++) {
+            for (int i = 0; i < inState.buttons.Count; i++) {
                 if (i < 32) {
-                    state.Buttons |= (inState.buttons[i] ? (uint)1 : 0) << i;
+                    state.Buttons |= (inState.buttons[i].getVal() ? (uint)1 : 0) << i;
                 } else if (i >= 32 && i < 64) {
-                    state.ButtonsEx1 |= (inState.buttons[i] ? (uint)1 : 0) << (i - 32);
+                    state.ButtonsEx1 |= (inState.buttons[i].getVal() ? (uint)1 : 0) << (i - 32);
                 }
             }
 
@@ -206,6 +193,7 @@ namespace JoyMapper {
                 this.Capabilities.Add(JoystickCapabilities.WHEEL);
             }
 
+            this.SupportedFFBEffects = new List<Guid>();
             // get supported FFB effects
             if (this.joystick.IsDeviceFfb(this.ID)) {
                 foreach (KeyValuePair<FFBEType, UInt32> entry in VirtualController.virtualEffectUInt32Map) {
@@ -227,9 +215,7 @@ namespace JoyMapper {
         }
 
         private void OnFFBDataReceived(FFBEventArgs e) {
-            if (this.FFBDataReceived != null) {
-                this.FFBDataReceived(this, e);
-            }
+            this.FFBDataReceived?.Invoke(this, e);
         }
     }
 }

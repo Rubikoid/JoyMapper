@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace JoyMapper {
-    class State {
+    public class State {
         public Axis AxisX;
         public Axis AxisY;
         public Axis AxisZ;
@@ -14,7 +14,7 @@ namespace JoyMapper {
         public Axis AxisYR;
         public Axis AxisZR;
 
-        public bool[] buttons;
+        public List<Button> buttons;
 
         public State(VirtualController vc) {
             this.AxisX = new Axis(vc, HID_USAGES.HID_USAGE_X);
@@ -25,7 +25,7 @@ namespace JoyMapper {
             this.AxisYR = new Axis(vc, HID_USAGES.HID_USAGE_RY);
             this.AxisZR = new Axis(vc, HID_USAGES.HID_USAGE_RZ);
 
-            this.buttons = new bool[vc.ButtonCount];
+            this.buttons = new List<Button>();
         }
     }
 }

@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using vJoyInterfaceWrap;
+
 namespace JoyMapper {
-    class Axis {
+    public class Axis {
         public uint ID { get; private set; }
         private VirtualController vc;
         private HID_USAGES axis;
@@ -27,14 +28,14 @@ namespace JoyMapper {
 
         public int getVal() {
             int ret = (int)(this.half_range + this.half_range * this._value);
-            Console.WriteLine($"[G] {this.axis.ToString()} {ret}");
+            //Console.WriteLine($"[G] {this.axis.ToString()} {ret}");
             return ret;
         }
 
         public void setVal(int val, long max, long min) {
             long half = max / 2;
             this._value = (val - half) / (float)half;
-            Console.WriteLine($"[S] {this.axis.ToString()} {val}->{this._value}");
+            //Console.WriteLine($"[S] {this.axis.ToString()} {val}->{this._value}");
         }
     }
 }

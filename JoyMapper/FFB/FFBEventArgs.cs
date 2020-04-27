@@ -3,7 +3,7 @@ using System;
 
 namespace JoyMapper
 {
-    class FFBEventArgs : EventArgs
+    public class FFBEventArgs : EventArgs
     {
         public EffectParameters Parameters { get; set; }
         public Guid EffectGuid { get; set; }

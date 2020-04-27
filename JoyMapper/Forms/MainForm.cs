@@ -8,53 +8,39 @@ using SharpDX.DirectInput;
 namespace JoyMapper {
     public partial class MainForm : Form {
         private Thread bg_thread = null;
-        private VirtualController vc = null;
-        private Dictionary<string, GameController> controllerDictionary = new Dictionary<string, GameController>();
         public MainForm() {
             InitializeComponent();
             this.loadControllers();
         }
 
         private void DoWork(object data) {
-            IEnumerable<GameController> conrts = data as IEnumerable<GameController>;
+            IEnumerable<IController> conrts = data as IEnumerable<IController>;
             try {
-                foreach (GameController gc in conrts) gc.Connect();
-                if (vc == null)
-                    vc = new VirtualController(1);
-                vc.Connect();
+                foreach (IController gc in conrts) gc.Connect();
+                ControllerCache.vc.Connect();
                 while (true) {
-                    State ins = new State(vc);
-                    foreach (GameController gc in conrts) gc.FillInfo(ref ins);
-                    vc.UpdateInfo(ins);
+                    State ins = new State(ControllerCache.vc);
+                    foreach (IController gc in conrts) gc.FillInfo(ref ins);
+                    ControllerCache.vc.UpdateInfo(ins);
                     Thread.Sleep(20);
                 }
-            } catch (ThreadAbortException ex) {
+            } catch (ThreadAbortException) {
                 Console.WriteLine("Stopping");
             } catch (Exception ex) {
                 Console.WriteLine($"SHIT SHIT {ex}");
             } finally {
-                foreach (GameController gc in conrts) gc.Disconnect();
-                vc.Disconnect();
+                foreach (IController gc in conrts) gc.Disconnect();
+                ControllerCache.vc.Disconnect();
                 Console.WriteLine("Disconnected");
             }
         }
 
         private void loadControllers() {
-            // this.GameControllers.Items.Clear();
-            // controllerDictionary.
-            foreach (GameController controller in GameController.GetAll()) {
-                if (!controllerDictionary.ContainsKey(controller.Name)) {
-                    controllerDictionary.Add(controller.Name, controller);
-                    this.GameControllers.Items.Add(controller.Name);
-                }
-                //if (controllerDictionary[controller.Name].Connected)
-                //    this.GameControllers.SetItemChecked(this.GameControllers.Items.Count - 1, true);
-            }
-            
+            ControllerCache.Update((name, cont) => { this.GameControllers.Items.Add(name); });
         }
 
         private void button1_Click(object sender, EventArgs e) {
-            IEnumerable<GameController> controllers = this.controllerDictionary
+            IEnumerable<GameController> controllers = ControllerCache.controllerDictionary
                 .Where(x => this.GameControllers.CheckedItems.Contains(x.Key))
                 .Select(x => x.Value);
             this.GameControllers.Enabled = false;
@@ -70,6 +56,14 @@ namespace JoyMapper {
 
         private void UpdateBtn_Click(object sender, EventArgs e) {
             this.loadControllers();
+        }
+
+        private void CreateMapBtn_Click(object sender, EventArgs e) {
+            string contName = this.GameControllers.SelectedItem as string;
+            if(contName != null && ControllerCache.controllerDictionary.ContainsKey(contName)) {
+                ControllerMap mapForm = new ControllerMap(ControllerCache.controllerDictionary[contName]);
+                mapForm.Show();
+            }
         }
     }
 }
