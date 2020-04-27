@@ -5,8 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using vJoyInterfaceWrap;
 
-namespace JoyMapper {
-    class VirtualFFBPacketHandler {
+namespace JoyMapper.FFB {
+    public class VirtualFFBPacketHandler {
         private vJoy joystick;
 
         private const uint ERROR_SUCCESS = 0x0;

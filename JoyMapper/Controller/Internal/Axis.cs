@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using vJoyInterfaceWrap;
 
-namespace JoyMapper {
+namespace JoyMapper.Controller.Internal {
     public class Axis {
         public uint ID { get; private set; }
         private VirtualController vc;

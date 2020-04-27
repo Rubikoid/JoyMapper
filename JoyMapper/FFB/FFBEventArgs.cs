@@ -1,7 +1,7 @@
 ﻿using SharpDX.DirectInput;
 using System;
 
-namespace JoyMapper
+namespace JoyMapper.FFB
 {
     public class FFBEventArgs : EventArgs
     {
@@ -12,6 +12,7 @@ namespace JoyMapper
         public FFBEventArgs() : base()
         {
             this.Parameters = new EffectParameters();
+            this.EffectGuid = Guid.Empty;
         }
     }
 }

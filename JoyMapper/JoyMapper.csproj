@@ -104,6 +104,7 @@
     <Compile Include="Controller\Internal\State.cs" />
     <Compile Include="FFB\FFBEventArgs.cs" />
     <Compile Include="Controller\IController.cs" />
+    <Compile Include="FFB\VirtualFFBPacket.cs" />
     <Compile Include="Forms\ControllerMap.cs">
       <SubType>Component</SubType>
     </Compile>

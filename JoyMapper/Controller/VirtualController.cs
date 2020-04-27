@@ -4,16 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JoyMapper.Controller.Internal;
+using JoyMapper.FFB;
 using SharpDX.DirectInput;
 using vJoyInterfaceWrap;
 
-namespace JoyMapper {
+namespace JoyMapper.Controller {
     /**
      * A wrapper around the vJoy Joystick class.
      **/
     public class VirtualController : IController {
         private static Dictionary<FFBEType, Guid> virtualEffectGuidMap = new Dictionary<FFBEType, Guid>
         {
+            { FFBEType.ET_NONE, EffectGuid.ConstantForce },
             { FFBEType.ET_CONST, EffectGuid.ConstantForce },
             { FFBEType.ET_RAMP, EffectGuid.RampForce },
             { FFBEType.ET_SQR, EffectGuid.Square },
@@ -24,7 +27,8 @@ namespace JoyMapper {
             { FFBEType.ET_SPRNG, EffectGuid.Spring },
             { FFBEType.ET_DMPR, EffectGuid.Damper },
             { FFBEType.ET_INRT, EffectGuid.Inertia },
-            { FFBEType.ET_FRCTN, EffectGuid.Friction }
+            { FFBEType.ET_FRCTN, EffectGuid.Friction },
+            { FFBEType.ET_CSTM, EffectGuid.CustomForce}
         };
         private static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
         {
@@ -215,7 +219,10 @@ namespace JoyMapper {
 
         private void OnVirtualFFBDataReceived(IntPtr data, object userData) {
             // handle FFB packets asynchronously
-            Task.Run(() => this.ffbPacketHandler.ProcessFFBPacket(data, userData, this.OnFFBDataReceived));
+            if (data != IntPtr.Zero)
+                Task.Run(() => {
+                    this.ffbPacketHandler.ProcessFFBPacket(data, userData, this.OnFFBDataReceived);
+                });
         }
 
         private void OnFFBDataReceived(FFBEventArgs e) {

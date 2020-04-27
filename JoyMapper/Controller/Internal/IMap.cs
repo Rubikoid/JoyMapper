@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JoyMapper {
+namespace JoyMapper.Controller.Internal {
     /*public enum MapType {
         AXIS,
         BUTTON,

@@ -1,11 +1,12 @@
-﻿using SharpDX.DirectInput;
+﻿using JoyMapper.Controller.Internal;
+using SharpDX.DirectInput;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JoyMapper {
+namespace JoyMapper.Controller {
     public static class ControllerCache {
         private static VirtualController _vc;
         public static VirtualController vc {

@@ -1,11 +1,12 @@
-﻿using SharpDX.DirectInput;
+﻿using JoyMapper.Controller.Internal;
+using SharpDX.DirectInput;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JoyMapper {
+namespace JoyMapper.Controller {
     /**
      * A wrapper around the DirectInput Joystick class.
      **/
@@ -39,12 +40,13 @@ namespace JoyMapper {
         private State internalState { get; set; }
         public IList<IMap> Mappings { get; private set; } = new List<IMap>();
 
-        public Joystick joystick;
+        public Joystick joystick = null;
         private static DirectInput directInput = new DirectInput();
 
         public void Connect() {
             if (!this.Connected) {
-                this.joystick = new Joystick(GameController.directInput, this.ID);
+                if(this.joystick == null)
+                    this.joystick = new Joystick(GameController.directInput, this.ID);
                 this.joystick.Acquire();
                 this.loadCapabilities();
                 this.Connected = true;
