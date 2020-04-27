@@ -30,6 +30,7 @@ namespace JoyMapper {
         }
     }
     public enum JoystickCapabilities {
+        NONE,
         AXIS_X,
         AXIS_Y,
         AXIS_Z,
@@ -51,10 +52,11 @@ namespace JoyMapper {
         int ContinuousPOVCount { get; }
         int DirectionalPOVCount { get; }
         IList<Guid> SupportedFFBEffects { get; }
+        IList<IMap> Mappings { get; }
 
         void Connect();
         void Disconnect();
-        void FillInfo(ref State state);
+        void FillExternalInfo(ref State state);
         void UpdateInfo(in State state);
     }
 }

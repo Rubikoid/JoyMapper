@@ -19,8 +19,8 @@ namespace JoyMapper {
                 foreach (IController gc in conrts) gc.Connect();
                 ControllerCache.vc.Connect();
                 while (true) {
-                    State ins = new State(ControllerCache.vc);
-                    foreach (IController gc in conrts) gc.FillInfo(ref ins);
+                    State ins = new State(ControllerCache.vc, ControllerCache.vc.ButtonCount);
+                    foreach (IController gc in conrts) gc.FillExternalInfo(ref ins);
                     ControllerCache.vc.UpdateInfo(ins);
                     Thread.Sleep(20);
                 }

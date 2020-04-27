@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace JoyMapper {
+    public class ExtendedComboBox : ComboBox {
+        public JoystickCapabilities axis;
+    }
+
     public partial class ControllerMap : Form {
         private IController controller;
         public ControllerMap(IController controller) {
@@ -29,7 +33,7 @@ namespace JoyMapper {
         private void createNewAxis(JoystickCapabilities cap) {
             Panel AxisSetting = new Panel();
             Label AxisSettingName = new Label();
-            ComboBox AxisSettingComboBox = new ComboBox();
+            ExtendedComboBox AxisSettingComboBox = new ExtendedComboBox();
 
             // 
             // AxisSetting
@@ -49,6 +53,8 @@ namespace JoyMapper {
             AxisSettingComboBox.Name = $"AxisSettingComboBox_{cap.ToString()}";
             AxisSettingComboBox.Size = new Size(125, 24);
             AxisSettingComboBox.TabIndex = 2;
+            AxisSettingComboBox.SelectedIndexChanged += this.AxisSettingComboBox_SelectedIndexChanged;
+            AxisSettingComboBox.axis = cap;
             // 
             // AxisSettingName
             // 
@@ -60,7 +66,29 @@ namespace JoyMapper {
             AxisSettingName.Text = $"{cap.ToString()}";
 
             AxisSettingComboBox.Items.AddRange(ControllerCache.vc.Capabilities.Select(x => x.ToString()).ToArray());
+            AxisMap aMap = this.controller.Mappings
+                .OfType<AxisMap>()
+                .Where(x => x.inAxis == cap)
+                .DefaultIfEmpty(null)
+                .FirstOrDefault();
+            if (aMap != null)
+                AxisSettingComboBox.SelectedItem = aMap.outAxis.ToString();
             this.AxisGroup.Controls.Add(AxisSetting);
+        }
+
+        private void AxisSettingComboBox_SelectedIndexChanged(object sender, EventArgs e) {
+            ExtendedComboBox AxisSettingComboBox = sender as ExtendedComboBox;
+            JoystickCapabilities nextCap = (JoystickCapabilities) Enum.Parse(typeof(JoystickCapabilities), AxisSettingComboBox.SelectedItem as string);
+            AxisMap aMap = this.controller.Mappings
+                .OfType<AxisMap>()
+                .Where(x => x.inAxis == AxisSettingComboBox.axis)
+                .DefaultIfEmpty(null)
+                .FirstOrDefault();
+            if (aMap != null) {
+                aMap.SetOut(nextCap);
+            } else {
+                this.controller.Mappings.Add(new AxisMap(AxisSettingComboBox.axis, nextCap));
+            }
         }
     }
 }

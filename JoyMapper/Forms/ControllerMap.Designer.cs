@@ -99,7 +99,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(230, 567);
+            this.ClientSize = new System.Drawing.Size(451, 567);
             this.Controls.Add(this.CapbsTextBox);
             this.Controls.Add(this.AxisLabel);
             this.Controls.Add(this.AxisGroup);

@@ -51,6 +51,9 @@ namespace JoyMapper {
         public int DirectionalPOVCount { get; private set; }
         public IList<Guid> SupportedFFBEffects { get; private set; }
 
+        private State internalState { get; set; }
+        public IList<IMap> Mappings { get; private set; } = new List<IMap>();
+
         public delegate void FFBDataReceiveEventHandler(object sender, FFBEventArgs e);
         public event FFBDataReceiveEventHandler FFBDataReceived;
         private VirtualFFBPacketHandler ffbPacketHandler;
@@ -109,7 +112,7 @@ namespace JoyMapper {
 
                 if (this.SupportedFFBEffects.Count > 0) {
                     this.ffbPacketHandler = new VirtualFFBPacketHandler(this.joystick);
-                    //this.joystick.FfbRegisterGenCB(this.OnVirtualFFBDataReceived, null);
+                    this.joystick.FfbRegisterGenCB(this.OnVirtualFFBDataReceived, null);
                 }
 
                 this.joystick.ResetVJD(this.ID);
@@ -130,7 +133,8 @@ namespace JoyMapper {
                 this.Connected = false;
             }
         }
-        public void FillInfo(ref State state) { }
+
+        public void FillExternalInfo(ref State state) { }
 
         public void UpdateInfo(in State inState) {
             vJoy.JoystickState state = new vJoy.JoystickState();

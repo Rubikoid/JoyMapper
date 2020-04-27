@@ -10,7 +10,10 @@ namespace JoyMapper {
         public uint ID { get; private set; }
         private VirtualController vc;
         private HID_USAGES axis;
+        
         private float _value { get; set; }
+        public float raw_val { get { return _value; } set { _value = value; } }
+
         private long _min_value;
         private long _max_value;
         private long half_range;

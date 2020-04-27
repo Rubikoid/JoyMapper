@@ -36,6 +36,9 @@ namespace JoyMapper {
         public int DirectionalPOVCount { get; private set; }
         public IList<Guid> SupportedFFBEffects { get; private set; }
 
+        private State internalState { get; set; }
+        public IList<IMap> Mappings { get; private set; } = new List<IMap>();
+
         public Joystick joystick;
         private static DirectInput directInput = new DirectInput();
 
@@ -76,9 +79,39 @@ namespace JoyMapper {
             this.DirectionalPOVCount = this.joystick.Capabilities.PovCount; // shrug, i belive i don't need this shit
         }
 
-        public void FillInfo(ref State state) {
-            JoystickState x = this.GetState();
-            state.AxisXR.setVal(x.RotationX, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+        private void FillInternalInfo() {
+            JoystickState iState = this.GetState();
+            this.internalState = new State(ControllerCache.vc, this.ButtonCount);
+
+            if (this.Capabilities.Contains(JoystickCapabilities.AXIS_X)) // double-check capbs
+                this.internalState.AxisX.setVal(iState.X, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+
+            if (this.Capabilities.Contains(JoystickCapabilities.AXIS_Y))
+                this.internalState.AxisY.setVal(iState.Y, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+
+            if (this.Capabilities.Contains(JoystickCapabilities.AXIS_Z))
+                this.internalState.AxisZ.setVal(iState.Z, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+
+            if (this.Capabilities.Contains(JoystickCapabilities.AXIS_RX))
+                this.internalState.AxisXR.setVal(iState.RotationX, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+
+            if (this.Capabilities.Contains(JoystickCapabilities.AXIS_RY))
+                this.internalState.AxisYR.setVal(iState.RotationY, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+
+            if (this.Capabilities.Contains(JoystickCapabilities.AXIS_RZ))
+                this.internalState.AxisZR.setVal(iState.RotationZ, (long)Math.Pow(2, 16), -1 * (long)Math.Pow(2, 16));
+
+            //if (iState.Buttons.Length != this.ButtonCount)
+            //    throw new Exception($"WTF {this.Name} {iState.Buttons.Length} != {this.ButtonCount}");
+
+            for (int i = 0; i < this.ButtonCount /* iState.Buttons.Length */; i++)
+                this.internalState.buttons[i].setVal(iState.Buttons[i]);
+        }
+
+        public void FillExternalInfo(ref State state) {
+            FillInternalInfo();
+            foreach (IMap map in this.Mappings)
+                map.Map(this.internalState, ref state);
         }
 
         public void UpdateInfo(in State inState) { }
@@ -90,14 +123,11 @@ namespace JoyMapper {
         public void SendFFBEffect(Guid effectGuid, EffectParameters effectParams) {
             if (this.Connected) {
                 Effect effect = new Effect(this.joystick, effectGuid, effectParams);
-                if (effect == null)
-                //{
-                //    effect.Start(loopCount, EffectPlayFlags.NoDownload);
-                //}
-                //else
-                {
+                if (effect != null) {
+                    effect.Start(EffectPlayFlags.NoDownload);
+                } else {
                     // effect not supported
-                    throw new Exception(string.Format("Force Feedback Effect '{0}' is not supported.", effectGuid));
+                    throw new Exception($"Force Feedback Effect '{effectGuid}' is not supported.");
                 }
             }
         }

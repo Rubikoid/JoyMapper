@@ -100,11 +100,12 @@
   <ItemGroup>
     <Compile Include="Controller\Internal\Axis.cs" />
     <Compile Include="Controller\Internal\Button.cs" />
+    <Compile Include="Controller\Internal\IMap.cs" />
     <Compile Include="Controller\Internal\State.cs" />
     <Compile Include="FFB\FFBEventArgs.cs" />
     <Compile Include="Controller\IController.cs" />
     <Compile Include="Forms\ControllerMap.cs">
-      <SubType>Form</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="Forms\ControllerMap.Designer.cs">
       <DependentUpon>ControllerMap.cs</DependentUpon>

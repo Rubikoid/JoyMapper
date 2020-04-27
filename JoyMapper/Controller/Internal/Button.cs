@@ -8,7 +8,7 @@ namespace JoyMapper {
     public class Button {
         public uint ID { get; private set; }
         private VirtualController vc;
-        private bool _value { get; set; }
+        private bool _value { get; set; } = false;
 
         public Button(VirtualController vc) {
             this.vc = vc;
