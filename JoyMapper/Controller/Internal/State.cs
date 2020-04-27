@@ -16,7 +16,7 @@ namespace JoyMapper {
 
         public List<Button> buttons;
 
-        public State(VirtualController vc, int buttonCount) {
+        public State(vJoyController vc, int buttonCount) {
             this.AxisX = new Axis(vc, HID_USAGES.HID_USAGE_X);
             this.AxisY = new Axis(vc, HID_USAGES.HID_USAGE_Y);
             this.AxisZ = new Axis(vc, HID_USAGES.HID_USAGE_Z);

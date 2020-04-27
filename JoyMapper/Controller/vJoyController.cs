@@ -11,9 +11,10 @@ namespace JoyMapper {
     /**
      * A wrapper around the vJoy Joystick class.
      **/
-    public class VirtualController : IController {
-        private static Dictionary<FFBEType, Guid> virtualEffectGuidMap = new Dictionary<FFBEType, Guid>
+    public partial class vJoyController : IController {
+        public static Dictionary<FFBEType, Guid> virtualEffectGuidMap = new Dictionary<FFBEType, Guid>
         {
+            { FFBEType.ET_NONE, EffectGuid.ConstantForce },
             { FFBEType.ET_CONST, EffectGuid.ConstantForce },
             { FFBEType.ET_RAMP, EffectGuid.RampForce },
             { FFBEType.ET_SQR, EffectGuid.Square },
@@ -24,9 +25,10 @@ namespace JoyMapper {
             { FFBEType.ET_SPRNG, EffectGuid.Spring },
             { FFBEType.ET_DMPR, EffectGuid.Damper },
             { FFBEType.ET_INRT, EffectGuid.Inertia },
-            { FFBEType.ET_FRCTN, EffectGuid.Friction }
+            { FFBEType.ET_FRCTN, EffectGuid.Friction },
+            { FFBEType.ET_CSTM, EffectGuid.CustomForce}
         };
-        private static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
+        public static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
         {
             { FFBEType.ET_CONST, 0x26 },
             { FFBEType.ET_RAMP, 0x27},
@@ -53,14 +55,16 @@ namespace JoyMapper {
 
         private State internalState { get; set; }
         public IList<IMap> Mappings { get; private set; } = new List<IMap>();
+        private ReVirtualController.vJoy.vJoyFfbState ffbState = new ReVirtualController.vJoy.vJoyFfbState();
 
-        public delegate void FFBDataReceiveEventHandler(object sender, FFBEventArgs e);
+        public delegate void FFBDataReceiveEventHandler(object sender, FFBAction e);
         public event FFBDataReceiveEventHandler FFBDataReceived;
+
         private VirtualFFBPacketHandler ffbPacketHandler;
 
         public vJoy joystick;
 
-        public VirtualController(uint ID) {
+        public vJoyController(uint ID) {
             this.ID = ID;
             this.joystick = new vJoy();
             if (!joystick.vJoyEnabled()) {
@@ -200,9 +204,9 @@ namespace JoyMapper {
             this.SupportedFFBEffects = new List<Guid>();
             // get supported FFB effects
             if (this.joystick.IsDeviceFfb(this.ID)) {
-                foreach (KeyValuePair<FFBEType, UInt32> entry in VirtualController.virtualEffectUInt32Map) {
+                foreach (KeyValuePair<FFBEType, UInt32> entry in vJoyController.virtualEffectUInt32Map) {
                     if (this.joystick.IsDeviceFfbEffect(this.ID, entry.Value)) {
-                        this.SupportedFFBEffects.Add(VirtualController.virtualEffectGuidMap[entry.Key]);
+                        this.SupportedFFBEffects.Add(vJoyController.virtualEffectGuidMap[entry.Key]);
                     }
                 }
             }
@@ -215,11 +219,19 @@ namespace JoyMapper {
 
         private void OnVirtualFFBDataReceived(IntPtr data, object userData) {
             // handle FFB packets asynchronously
-            Task.Run(() => this.ffbPacketHandler.ProcessFFBPacket(data, userData, this.OnFFBDataReceived));
+            if (data != IntPtr.Zero)
+                Task.Run(() => {
+                    ReVirtualController.vJoy.vJoyFFBPacket vJoyFFBPacket = this.ffbPacketHandler.ProcessFFBPacket(data, userData);
+                    if (vJoyFFBPacket != null) {
+                        this.ffbState.Do(vJoyFFBPacket);
+                        this.GenerateIOEArgs(vJoyFFBPacket);
+                    } else
+                        Console.WriteLine("null packet");
+                });
         }
 
-        private void OnFFBDataReceived(FFBEventArgs e) {
+        /*private void OnFFBDataReceived( e) {
             this.FFBDataReceived?.Invoke(this, e);
-        }
+        }*/
     }
 }

@@ -7,16 +7,20 @@ using SharpDX.DirectInput;
 
 namespace JoyMapper {
     public partial class MainForm : Form {
+        public static IntPtr PublicHandle { get; private set; }
         private Thread bg_thread = null;
         public MainForm() {
             InitializeComponent();
             this.loadControllers();
+            MainForm.PublicHandle = Handle;
         }
 
         private void DoWork(object data) {
             IEnumerable<IController> conrts = data as IEnumerable<IController>;
             try {
+                Console.WriteLine("Connecting to controllers");
                 foreach (IController gc in conrts) gc.Connect();
+                Console.WriteLine("Connecting to vjoy");
                 ControllerCache.vc.Connect();
                 while (true) {
                     State ins = new State(ControllerCache.vc, ControllerCache.vc.ButtonCount);
@@ -44,6 +48,8 @@ namespace JoyMapper {
                 .Where(x => this.GameControllers.CheckedItems.Contains(x.Key))
                 .Select(x => x.Value);
             this.GameControllers.Enabled = false;
+            this.StartBtn.Enabled = false;
+            this.StopBtn.Enabled = true;
             this.bg_thread = new Thread(this.DoWork);
             this.bg_thread.Start(controllers);
         }
@@ -51,6 +57,8 @@ namespace JoyMapper {
         private void button2_Click(object sender, EventArgs e) {
             this.bg_thread.Abort();
             this.GameControllers.Enabled = true;
+            this.StartBtn.Enabled = true;
+            this.StopBtn.Enabled = false;
             // GameController c = this.cboGameController.SelectedValue as GameController;
         }
 

@@ -12,6 +12,7 @@ namespace JoyMapper
         public FFBEventArgs() : base()
         {
             this.Parameters = new EffectParameters();
+            this.EffectGuid = Guid.Empty;
         }
     }
 }

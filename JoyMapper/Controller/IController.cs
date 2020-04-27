@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace JoyMapper {
     public static class ControllerCache {
-        private static VirtualController _vc;
-        public static VirtualController vc {
+        private static vJoyController _vc;
+        public static vJoyController vc {
             get {
                 if (_vc == null) {
-                    _vc = new VirtualController(1);
+                    _vc = new vJoyController(1);
                     _vc.Connect(); // this is a little strange way, but i want do load all capbs of joystic but don't keep connection
                     _vc.Disconnect();
                 }

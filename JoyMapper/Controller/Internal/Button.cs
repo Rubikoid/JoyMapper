@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 namespace JoyMapper {
     public class Button {
         public uint ID { get; private set; }
-        private VirtualController vc;
+        private vJoyController vc;
         private bool _value { get; set; } = false;
 
-        public Button(VirtualController vc) {
+        public Button(vJoyController vc) {
             this.vc = vc;
             this.ID = vc.ID;
 

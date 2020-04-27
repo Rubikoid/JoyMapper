@@ -8,7 +8,7 @@ using vJoyInterfaceWrap;
 namespace JoyMapper {
     public class Axis {
         public uint ID { get; private set; }
-        private VirtualController vc;
+        private vJoyController vc;
         private HID_USAGES axis;
         
         private float _value { get; set; }
@@ -18,7 +18,7 @@ namespace JoyMapper {
         private long _max_value;
         private long half_range;
 
-        public Axis(VirtualController vc, HID_USAGES axis) {
+        public Axis(vJoyController vc, HID_USAGES axis) {
             this.vc = vc;
             this.ID = vc.ID;
             this.axis = axis;

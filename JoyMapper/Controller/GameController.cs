@@ -9,7 +9,7 @@ namespace JoyMapper {
     /**
      * A wrapper around the DirectInput Joystick class.
      **/
-    public class GameController : IController {
+    public partial class GameController : IController {
         private static Dictionary<JoystickOffset, JoystickCapabilities> joysticCapsMap = new Dictionary<JoystickOffset, JoystickCapabilities>
         {
             { JoystickOffset.X, JoystickCapabilities.AXIS_X },
@@ -35,18 +35,32 @@ namespace JoyMapper {
         public int ContinuousPOVCount { get; private set; }
         public int DirectionalPOVCount { get; private set; }
         public IList<Guid> SupportedFFBEffects { get; private set; }
+        public List<VirtualController.DirectInput.EffectInfo> SupportedFFBEffects_Full { get; private set; }
+        public List<VirtualController.DirectInput.Effect> ForceFeedbackEffects = new List<VirtualController.DirectInput.Effect>();
+        public Dictionary<VirtualController.AxisType, int> FFBAxisIds = new Dictionary<VirtualController.AxisType, int>();
 
         private State internalState { get; set; }
         public IList<IMap> Mappings { get; private set; } = new List<IMap>();
 
-        public Joystick joystick;
+        public Joystick joystick = null;
         private static DirectInput directInput = new DirectInput();
+
+        private object lockObj = 1;
 
         public void Connect() {
             if (!this.Connected) {
-                this.joystick = new Joystick(GameController.directInput, this.ID);
+                if (this.joystick == null) {
+                    this.joystick = new Joystick(GameController.directInput, this.ID);
+                }
+                this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
                 this.joystick.Acquire();
                 this.loadCapabilities();
+
+                // this.SetCooperativeLevel(CooperativeLevel.NonExclusive | CooperativeLevel.Background);
+                // this.joystick.Acquire();
+
+                if (this.SupportedFFBEffects.Count > 0)
+                    ControllerCache.vc.FFBDataReceived += this.OnIOEvent;
                 this.Connected = true;
             }
         }
@@ -54,6 +68,8 @@ namespace JoyMapper {
         public void Disconnect() {
             if (this.Connected) {
                 this.joystick.Unacquire();
+                if (this.SupportedFFBEffects.Count > 0)
+                    ControllerCache.vc.FFBDataReceived -= this.OnIOEvent;
                 this.Connected = false;
             }
         }
@@ -77,6 +93,22 @@ namespace JoyMapper {
 
             this.ContinuousPOVCount = this.joystick.Capabilities.PovCount;
             this.DirectionalPOVCount = this.joystick.Capabilities.PovCount; // shrug, i belive i don't need this shit
+
+                
+            // ReVirtualController
+            this.FFBAxisIds = this.GetFFBAxisIdsList();
+
+            this.SupportedFFBEffects_Full = new List<VirtualController.DirectInput.EffectInfo>();
+            using (IEnumerator<SharpDX.DirectInput.EffectInfo> enumerator3 = this.joystick.GetEffects().GetEnumerator()) {
+                while (enumerator3.MoveNext()) {
+                    SharpDX.DirectInput.EffectInfo effectInfo = enumerator3.Current;
+                    VirtualController.DirectInput.EffectInfo effectInfo2 = new VirtualController.DirectInput.EffectInfo();
+                    effectInfo2.Guid = effectInfo.Guid;
+                    effectInfo2.ParentDevice = this.joystick;
+                    effectInfo2.StaticParameters = effectInfo.StaticParameters;
+                    this.SupportedFFBEffects_Full.Add(effectInfo2);
+                }
+            }
         }
 
         private void FillInternalInfo() {
@@ -120,17 +152,19 @@ namespace JoyMapper {
             return this.Connected ? this.joystick.GetCurrentState() : null;
         }
 
-        public void SendFFBEffect(Guid effectGuid, EffectParameters effectParams) {
-            if (this.Connected) {
-                Effect effect = new Effect(this.joystick, effectGuid, effectParams);
+        /*
+        public void SendFFBEffect(object sender, FFBEventArgs args) {
+            if (this.Connected && args.EffectGuid != Guid.Empty) {
+                Effect effect = new Effect(this.joystick, args.EffectGuid, args.Parameters);
                 if (effect != null) {
-                    effect.Start(EffectPlayFlags.NoDownload);
+                    effect.Start(args.LoopCount, EffectPlayFlags.NoDownload);
                 } else {
                     // effect not supported
-                    throw new Exception($"Force Feedback Effect '{effectGuid}' is not supported.");
+                    throw new Exception($"Force Feedback Effect '{args.EffectGuid}' is not supported.");
                 }
             }
         }
+        */
 
         /**
          * Returns a list of all connected game controllers.
