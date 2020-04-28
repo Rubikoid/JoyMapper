@@ -36,6 +36,7 @@
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.button1 = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -77,7 +78,7 @@
             this.GameControllers.FormattingEnabled = true;
             this.GameControllers.Location = new System.Drawing.Point(12, 60);
             this.GameControllers.Name = "GameControllers";
-            this.GameControllers.Size = new System.Drawing.Size(331, 174);
+            this.GameControllers.Size = new System.Drawing.Size(331, 191);
             this.GameControllers.TabIndex = 4;
             // 
             // CreateMapBtn
@@ -114,11 +115,22 @@
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(64, 24);
             this.aboutToolStripMenuItem.Text = "About";
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(12, 257);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 7;
+            this.button1.Text = "button1";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_1);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(355, 259);
+            this.ClientSize = new System.Drawing.Size(355, 301);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.CreateMapBtn);
             this.Controls.Add(this.GameControllers);
             this.Controls.Add(this.UpdateBtn);
@@ -145,6 +157,7 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.Button button1;
     }
 }
 

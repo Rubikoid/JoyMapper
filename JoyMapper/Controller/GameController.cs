@@ -35,7 +35,9 @@ namespace JoyMapper.Controller {
         public int ButtonCount { get; private set; }
         public int ContinuousPOVCount { get; private set; }
         public int DirectionalPOVCount { get; private set; }
+
         public IList<Guid> SupportedFFBEffects { get; private set; }
+        public int[] FFBAxes { get; private set; }
 
         private State internalState { get; set; }
         public IList<IMap> Mappings { get; private set; } = new List<IMap>();
@@ -45,8 +47,12 @@ namespace JoyMapper.Controller {
 
         public void Connect() {
             if (!this.Connected) {
-                if(this.joystick == null)
+                if (this.joystick == null)
                     this.joystick = new Joystick(GameController.directInput, this.ID);
+                this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
+                this.joystick.Properties.AxisMode = DeviceAxisMode.Absolute;
+                this.joystick.Properties.AutoCenter = false;
+
                 this.joystick.Acquire();
                 this.loadCapabilities();
                 this.Connected = true;
@@ -58,6 +64,30 @@ namespace JoyMapper.Controller {
                 this.joystick.Unacquire();
                 this.Connected = false;
             }
+        }
+
+        public void SetCooperativeLevel(SharpDX.DirectInput.CooperativeLevel Level) {
+            this.joystick.SetCooperativeLevel(MainForm.PublicHandle, Level);
+        }
+
+        public void RunExclusive(Action action) {
+            try {
+                action();
+            } catch (SharpDX.SharpDXException ex) {
+                if (ex.HResult == -2147220987) {
+                    this.joystick.Unacquire();
+                    this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
+                    this.joystick.Acquire();
+                    action();
+                    Console.WriteLine("Reaq joystic in exclusive mode because of idk why it brokes");
+                } else
+                    throw ex;
+            }
+        }
+
+        public void SendForceFeedbackCommand(ForceFeedbackCommand FFBCommand) {
+            // this.SetCooperativeLevel(SharpDX.DirectInput.CooperativeLevel.Exclusive | SharpDX.DirectInput.CooperativeLevel.Background);
+            this.RunExclusive(() => this.joystick.SendForceFeedbackCommand(FFBCommand));
         }
 
         private void loadCapabilities() {
@@ -79,6 +109,39 @@ namespace JoyMapper.Controller {
 
             this.ContinuousPOVCount = this.joystick.Capabilities.PovCount;
             this.DirectionalPOVCount = this.joystick.Capabilities.PovCount; // shrug, i belive i don't need this shit
+
+            FFBAxes = null;
+            this.joystick.Properties.Range = new InputRange(-1 * (int)Math.Pow(2, 16), (int)Math.Pow(2, 16));
+            // Enumerate any axes
+            foreach (DeviceObjectInstance doi in this.joystick.GetObjects()) {
+                // Console.WriteLine($"{doi.Name}\t\t{doi.ObjectId.Flags}\t\t{doi.ObjectType}");
+                if (doi.ObjectType == ObjectGuid.XAxis || doi.ObjectType == ObjectGuid.YAxis ||
+                    doi.ObjectType == ObjectGuid.ZAxis || doi.ObjectType == ObjectGuid.RxAxis ||
+                    doi.ObjectType == ObjectGuid.RyAxis || doi.ObjectType == ObjectGuid.RzAxis) {
+                    // We found an axis, set the range to a max of 10,000
+                    /*Dev.Properties.SetRange(ParameterHow.ById,
+                    doi.ObjectId, new InputRange(-5000, 5000)); */
+                }
+
+                int[] temp;
+                // Get info about first two FF axii on the device
+                if ((doi.ObjectId.Flags & DeviceObjectTypeFlags.ForceFeedbackActuator) != 0) {
+                    if (FFBAxes != null) {
+                        temp = new int[FFBAxes.Length + 1];
+                        FFBAxes.CopyTo(temp, 0);
+                        FFBAxes = temp;
+                    } else {
+                        FFBAxes = new int[1];
+                    }
+
+                    // Store the offset of each axis.
+                    FFBAxes[FFBAxes.Length - 1] = (int)doi.ObjectId;
+                    if (FFBAxes.Length == 2) {
+                        break;
+                    }
+                }
+            }
+            Console.WriteLine($"Loaded axis: {string.Join(", ", FFBAxes.Select(x => x.ToString())) }");
         }
 
         private void FillInternalInfo() {
@@ -145,6 +208,8 @@ namespace JoyMapper.Controller {
             );
 
             foreach (DeviceInstance deviceInstance in connectedDevices) {
+                if (deviceInstance.InstanceName.ToLower().Contains("vjoy"))
+                    continue; // skip vjoy devices
                 devices.Add(new GameController() {
                     Name = deviceInstance.InstanceName,
                     ID = deviceInstance.InstanceGuid,

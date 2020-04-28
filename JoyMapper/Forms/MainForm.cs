@@ -76,5 +76,29 @@ namespace JoyMapper {
                 mapForm.Show();
             }
         }
+
+        private void button1_Click_1(object sender, EventArgs e) {
+            var cont = ControllerCache.controllerDictionary.First().Value;
+            var effpar = new EffectParameters() {
+                Duration = -1,
+                Flags = EffectFlags.Cartesian | EffectFlags.ObjectIds,
+                Gain = 100,
+                SamplePeriod = 0,
+                StartDelay = 0,
+                TriggerButton = -1,
+                TriggerRepeatInterval = 0,
+                Envelope = null,
+
+                Parameters = new ConstantForce() {
+                    Magnitude = 100,
+                }
+            };
+            effpar.SetAxes(new int[1] { cont.FFBAxes[0] }, new int[1] { -1 });
+
+            Effect newE = new Effect(cont.joystick, EffectGuid.ConstantForce, effpar);
+
+            cont.RunExclusive(() => newE.Start());
+            Console.WriteLine($"{newE.Status}");
+        }
     }
 }
