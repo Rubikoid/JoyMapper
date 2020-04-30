@@ -58,9 +58,7 @@ namespace JoyMapper.Controller {
         private State internalState { get; set; }
         public IList<IMap> Mappings { get; private set; } = new List<IMap>();
 
-        public delegate void FFBDataReceiveEventHandler(object sender, FFBEventArgs e);
-        public event FFBDataReceiveEventHandler FFBDataReceived;
-        private VirtualFFBPacketHandler ffbPacketHandler;
+        public event VirtualFFBPacketHandler.FFBDataReceiveEventHandler FFBDataReceived;
 
         public vJoy joystick;
 
@@ -103,9 +101,9 @@ namespace JoyMapper.Controller {
                 // check driver version against local DLL version
                 uint DllVer = 0, DrvVer = 0;
                 if (!this.joystick.DriverMatch(ref DllVer, ref DrvVer)) {
-                    Console.WriteLine(String.Format("Version of vJoy Driver ({0:X}) does not match vJoy DLL Version ({1:X})!", DrvVer, DllVer));
-                }
-
+                    Console.WriteLine("Version of vJoy Driver ({0:X}) NOT MATCH NOT MATCH vJoy DLL Version ({1:X})", DrvVer, DllVer);
+                } else
+                    Console.WriteLine("Version of vJoy Driver ({0:X}), vJoy DLL Version ({1:X})", DrvVer, DllVer);
                 this.loadCapabilities();
 
                 // now aquire the vJoy device
@@ -115,8 +113,9 @@ namespace JoyMapper.Controller {
                     Console.WriteLine("Acquired: vJoy device number {0}.", this.ID);
 
                 if (this.SupportedFFBEffects.Count > 0) {
-                    this.ffbPacketHandler = new VirtualFFBPacketHandler(this.joystick);
-                    this.joystick.FfbRegisterGenCB(this.OnVirtualFFBDataReceived, null);
+                    VirtualFFBPacketHandler.AddFFBHandler(this.ID, this.FFBDataReceivedHandler);
+                    // this.ffbPacketHandler = new VirtualFFBPacketHandler(this.joystick, this);
+                    // this.joystick.FfbRegisterGenCB(this.OnVirtualFFBDataReceived, null);
                 }
 
                 this.joystick.ResetVJD(this.ID);
@@ -128,12 +127,14 @@ namespace JoyMapper.Controller {
         public void Disconnect() {
             if (this.Connected) {
                 if (this.SupportedFFBEffects.Count > 0) {
+                    VirtualFFBPacketHandler.RemoveFFBHandler(this.ID);
                     //this.joystick.FfbRegisterGenCB(null, null);
                     //this.ffbPacketHandler = new VirtualFFBPacketHandler(this.joystick);
                 }
                 this.joystick.ResetVJD(this.ID);
                 Thread.Sleep(1000);
                 this.joystick.RelinquishVJD(this.ID);
+                Console.WriteLine("Dropped: vJoy device number {0}.", this.ID);
                 this.Connected = false;
             }
         }
@@ -217,16 +218,9 @@ namespace JoyMapper.Controller {
             this.DirectionalPOVCount = this.joystick.GetVJDDiscPovNumber(this.ID);
         }
 
-        private void OnVirtualFFBDataReceived(IntPtr data, object userData) {
-            // handle FFB packets asynchronously
-            if (data != IntPtr.Zero)
-                Task.Run(() => {
-                    this.ffbPacketHandler.ProcessFFBPacket(data, userData, this.OnFFBDataReceived);
-                });
-        }
-
-        private void OnFFBDataReceived(FFBEventArgs e) {
-            this.FFBDataReceived?.Invoke(this, e);
+        public void FFBDataReceivedHandler(VirtualFFBPacket e) {
+            
+            this.FFBDataReceived?.Invoke(e);
         }
     }
 }

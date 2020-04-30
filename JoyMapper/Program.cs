@@ -1,20 +1,36 @@
-﻿using System;
+﻿using NLog;
+using NLog.Config;
+using NLog.Targets;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace JoyMapper
-{
-    static class Program
-    {
+namespace JoyMapper {
+    static class Program {
+        private static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
-        {
+        static void Main() {
+            // AppDomain.CurrentDomain.AppendPrivatePath(@"C:\Program Files\vJoy\x86");
+            Utils.initializeAssembly();
+
+            LoggingConfiguration config = new LoggingConfiguration();
+
+            FileTarget logfile = new FileTarget("logfile") { FileName = "log.txt" };
+            ConsoleTarget logconsole = new ConsoleTarget("logconsole");
+            
+            config.AddRule(LogLevel.Debug, LogLevel.Fatal, logconsole);
+            config.AddRule(LogLevel.Debug, LogLevel.Fatal, logfile);
+            LogManager.Configuration = config;
+
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
@@ -34,6 +50,42 @@ namespace JoyMapper
                 }
             }
             return p;
+        }
+
+        /// <summary>
+        /// Here is the list of authorized assemblies (DLL files)
+        /// You HAVE TO specify each of them and call InitializeAssembly()
+        /// </summary>
+        private static string[] LOAD_ASSEMBLIES = { "vJoyInterfaceWrap.dll" };
+        private static string[] LOAD_PATHS = { @"C:\Program Files\vJoy\x86", @"C:\Program Files\vJoy\x64" };
+
+        /// <summary>
+        /// Call this method at the beginning of the program
+        /// </summary>
+        public static void initializeAssembly() {
+            AppDomain.CurrentDomain.AssemblyResolve += delegate (object sender, ResolveEventArgs args) {
+                string assemblyFile = (args.Name.Contains(',')) ? args.Name.Substring(0, args.Name.IndexOf(',')) : args.Name;
+
+                assemblyFile += ".dll";
+
+                // Forbid non handled dll's
+                if (!LOAD_ASSEMBLIES.Contains(assemblyFile)) {
+                    return null;
+                }
+
+                bool is64 = System.Environment.Is64BitOperatingSystem;
+                string absoluteFolder = is64 ? LOAD_PATHS[1] : LOAD_PATHS[0];
+                Console.WriteLine($"Loading {assemblyFile} from {absoluteFolder} (is64={is64})");
+                //string absoluteFolder = new FileInfo((new System.Uri(Assembly.GetExecutingAssembly().CodeBase)).LocalPath).Directory.FullName;
+                string targetPath = Path.Combine(absoluteFolder, assemblyFile);
+
+                try {
+                    return Assembly.LoadFile(targetPath);
+                } catch (Exception ex) {
+                    Console.WriteLine($"Err: {ex}");
+                    return null;
+                }
+            };
         }
 
     }

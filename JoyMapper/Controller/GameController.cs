@@ -204,12 +204,12 @@ namespace JoyMapper.Controller {
             List<GameController> devices = new List<GameController>();
             IList<DeviceInstance> connectedDevices = GameController.directInput.GetDevices(
                 DeviceClass.GameControl,
-                DeviceEnumerationFlags.AttachedOnly
+                DeviceEnumerationFlags.AllDevices
             );
 
             foreach (DeviceInstance deviceInstance in connectedDevices) {
-                if (deviceInstance.InstanceName.ToLower().Contains("vjoy"))
-                    continue; // skip vjoy devices
+                //if (deviceInstance.InstanceName.ToLower().Contains("vjoy"))
+                //    continue; // skip vjoy devices
                 devices.Add(new GameController() {
                     Name = deviceInstance.InstanceName,
                     ID = deviceInstance.InstanceGuid,
@@ -221,7 +221,7 @@ namespace JoyMapper.Controller {
         }
 
         public override string ToString() {
-            return string.Format("Device ID: {0}, Device Name: {1}", this.ID, this.Name);
+            return string.Format("{1}, {0}", this.ID, this.Name);
         }
     }
 }

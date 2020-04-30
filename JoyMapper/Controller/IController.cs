@@ -19,13 +19,26 @@ namespace JoyMapper.Controller {
                 return _vc;
             }
         }
+        
+        private static VirtualController _vc2;
+        public static VirtualController vc2 {
+            get {
+                if (_vc2 == null) {
+                    _vc2 = new VirtualController(2);
+                    _vc2.Connect(); // this is a little strange way, but i want do load all capbs of joystic but don't keep connection
+                    _vc2.Disconnect();
+                }
+                return _vc2;
+            }
+        }
+
         public static Dictionary<string, GameController> controllerDictionary = new Dictionary<string, GameController>();
 
         public static void Update(Action<string, GameController> callback) {
             foreach (GameController controller in GameController.GetAll()) {
-                if (!controllerDictionary.ContainsKey(controller.Name)) {
-                    controllerDictionary.Add(controller.Name, controller);
-                    callback(controller.Name, controller);
+                if (!controllerDictionary.ContainsKey(controller.ID.ToString())) {
+                    controllerDictionary.Add(controller.ToString(), controller);
+                    callback(controller.ToString(), controller);
                 }
             }
         }
