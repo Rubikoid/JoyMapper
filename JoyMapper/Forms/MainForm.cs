@@ -12,8 +12,8 @@ using System.Reflection;
 
 namespace JoyMapper {
     public partial class MainForm : Form {
+        private static NLog.Logger logger = NLog.LogManager.GetLogger("MainForm");
         public static IntPtr PublicHandle { get; private set; }
-
         private Thread bg_thread = null;
 
         class FFBEvent {
@@ -21,37 +21,35 @@ namespace JoyMapper {
             public int Count { get; set; }
         }
         private BindingList<FFBEvent> data = new BindingList<FFBEvent>() { };
+        private BindingList<FFBEvent> data2 = new BindingList<FFBEvent>() { };
+        private IEnumerable<IController> conrts;
+
         public MainForm() {
             InitializeComponent();
-            Console.WriteLine($"Loading joymapper version: {Assembly.GetExecutingAssembly().GetName().Version.ToString()}");
+            PublicHandle = Handle;
+
+            logger.Info($"Loading joymapper version: {Assembly.GetExecutingAssembly().GetName().Version.ToString()}");
+
             VirtualFFBPacketHandler.Init();
             this.loadControllers();
-            MainForm.PublicHandle = Handle;
 
-            /*dataGridView1.Columns.Add(new DataGridViewColumn() {
-                HeaderText = "Name",
-                Name = "name",
-                Frozen = true,
-                CellTemplate = new DataGridViewTextBoxCell(),
-            });
-            dataGridView1.Columns.Add(new DataGridViewColumn() {
-                HeaderText = "Count",
-                Name = "count",
-                Frozen = true,
-                CellTemplate = new DataGridViewTextBoxCell(),
-            });*/
             this.dataGridView1.DataSource = data;
-            // ControllerCache.vc.FFBDataReceived += this.callb;
+            this.dataGridView2.DataSource = data2;
+
+            ControllerCache.vc.FFBDataReceived += this.callb_kek;
+
+            ControllerCache.vc.FFBDataReceived += this.callb1;
+            ControllerCache.vc2.FFBDataReceived += this.callb2;
         }
 
         private void DoWork(object data) {
-            IEnumerable<IController> conrts = data as IEnumerable<IController>;
+            conrts = data as IEnumerable<IController>;
             try {
-                Console.WriteLine("Connecting to controllers");
+                logger.Info("Connecting to controllers");
                 foreach (IController gc in conrts) gc.Connect();
                 ControllerCache.vc.Connect();
                 ControllerCache.vc2.Connect();
-                Console.WriteLine("Connecting to vjoy");
+                logger.Info("Connecting to vjoy");
                 while (true) {
                     State ins = new State(ControllerCache.vc, ControllerCache.vc.ButtonCount);
                     foreach (IController gc in conrts) gc.FillExternalInfo(ref ins);
@@ -60,20 +58,20 @@ namespace JoyMapper {
                     Thread.Sleep(20);
                 }
             } catch (ThreadAbortException) {
-                Console.WriteLine("Stopping");
+                logger.Info("Stopping thread on threadabord");
             } catch (Exception ex) {
-                Console.WriteLine($"SHIT SHIT {ex}");
+                logger.Error(ex, "SHIT SHIT");
             } finally {
                 foreach (IController gc in conrts) gc.Disconnect();
                 ControllerCache.vc.Disconnect();
                 ControllerCache.vc2.Disconnect();
-                Console.WriteLine("Disconnected");
+                logger.Info("Disconnected from controllers");
             }
         }
 
         private void loadControllers() {
             ControllerCache.Update((name, cont) => { this.GameControllers.Items.Add(cont.ToString()); });
-            Console.WriteLine("Controllers loaded");
+            logger.Info("Controllers updated");
         }
 
         private void button1_Click(object sender, EventArgs e) {
@@ -88,7 +86,7 @@ namespace JoyMapper {
         }
 
         private void button2_Click(object sender, EventArgs e) {
-            this.bg_thread.Abort();
+            this.bg_thread?.Abort();
             //this.GameControllers.Enabled = true;
             this.StartBtn.Enabled = true;
             this.StopBtn.Enabled = false;
@@ -107,74 +105,124 @@ namespace JoyMapper {
             }
         }
 
-        public void callb(object sender, VirtualFFBPacket e) {
-            string key = e.FFBPType.ToString();
+        public void callb_kek(VirtualFFBPacket e) {
+            if (this.bg_thread.IsAlive) {
+                foreach (IController gc in conrts) {
+                    foreach (FFBMap map in gc.Mappings.OfType<FFBMap>()) {
+                        // logger.Debug($"Running mapping on {gc.ToString()}");
+                        map.Map(e);
+                    }
+                }
+            }
+        }
+
+
+        public void callb1(VirtualFFBPacket e) {
+            string key = e._FFBPType.ToString();
             this.dataGridView1.Invoke((MethodInvoker)(() => {
                 FFBEvent ev = this.data.FirstOrDefault(x=>x.Name == key);
                 if (ev != null) {
                     ev.Count++;
                     this.data.ResetItem(this.data.IndexOf(ev));
                 } else
-                    this.data.Add(new FFBEvent() { Name = e.FFBPType.ToString(), Count = 1 });
+                    this.data.Add(new FFBEvent() { Name = e._FFBPType.ToString(), Count = 1 });
             }));
-            /*if (this.dataGridView1..Items.ContainsKey(key)) {
-                this.listView1.Items[key].Text = (int.Parse(this.listView1.Items[key].Text) + 1).ToString();
-            }
-            else {
-
-            }*/
         }
 
-        private void button1_Click_1(object sender, EventArgs e) {
-            //var cont = ControllerCache.controllerDictionary.Where(x => x.Value.Name.ToLower().Contains("vjoy") && !x.Key.Contains("29") && x.Key.Contains("3e")).First().Value;
-            var _cont = ControllerCache.controllerDictionary.Where(x => x.Value.ToString() == (string)this.GameControllers.SelectedItem).DefaultIfEmpty(new KeyValuePair<string, GameController>("", null)).FirstOrDefault();
+        public void callb2(VirtualFFBPacket e) {
+            string key = e._FFBPType.ToString();
+            this.dataGridView2.Invoke((MethodInvoker)(() => {
+                FFBEvent ev = this.data2.FirstOrDefault(x=>x.Name == key);
+                if (ev != null) {
+                    ev.Count++;
+                    this.data2.ResetItem(this.data2.IndexOf(ev));
+                } else
+                    this.data2.Add(new FFBEvent() { Name = e._FFBPType.ToString(), Count = 1 });
+            }));
+        }
+        private void DoOnSelected(object sender, Action<GameController> action) {
+            var _cont = ControllerCache.controllerDictionary
+                .Where(x => x.Value.ToString() == (string)this.GameControllers.SelectedItem)
+                .DefaultIfEmpty(new KeyValuePair<string, GameController>("", null))
+                .FirstOrDefault();
             if (_cont.Value != null) {
                 var cont = _cont.Value;
                 if (cont.Connected) {
                     try {
-                        var effpar = new EffectParameters() {
-                            Duration = -1,
-                            Flags = EffectFlags.Cartesian | EffectFlags.ObjectIds,
-                            Gain = 100,
-                            SamplePeriod = 0,
-                            StartDelay = 0,
-                            TriggerButton = -1,
-                            TriggerRepeatInterval = 0,
-                            Envelope = null,
-
-                            Parameters = new ConstantForce() {
-                                Magnitude = 100,
-                            }
-                        };
-                        effpar.SetAxes(new int[1] { cont.FFBAxes[0] }, new int[1] { -1 });
-
-                        Effect newE = new Effect(cont.joystick, EffectGuid.ConstantForce, effpar);
-
-                        cont.RunExclusive(() => newE.Start());
-                        Console.WriteLine($"{newE.Status}");
+                        action(cont);
                     } catch (Exception ex) {
                         if (sender != null) {
-                            Console.WriteLine($"WTF CONTROLLER {cont} SAY {ex}");
+                            logger.Warn($"WTF CONTROLLER {cont} {ex}");
                             Thread.Sleep(200);
-                            this.button1_Click_1(null, null);
+                            DoOnSelected(null, action);
                         } else {
-                            Console.WriteLine($"WTF CONTROLLER {cont} DIEEE {ex}");
+                            logger.Error($"WTF CONTROLLER {cont} DIEEE {ex}");
                         }
                     }
                 } else {
                     if (sender != null) {
-                        Console.WriteLine($"WTF CONTROLLER {cont} DISCONNECTD -> RECONNECT??");
+                        logger.Warn($"WTF CONTROLLER {cont} DISCONNECTD -> RECONNECT??");
                         cont.Connect();
                         Thread.Sleep(10);
-                        cont.Disconnect();
-                        Thread.Sleep(10);
-                        cont.Connect();
-                        Thread.Sleep(10);
-                        this.button1_Click_1(null, null);
+                        DoOnSelected(null, action);
                     } else
-                        Console.WriteLine($"WTF CONTROLLER {cont} DIE??");
+                        logger.Error($"WTF CONTROLLER {cont} DIE??");
                 }
             }
+        }
+        private void button1_Click_1(object sender, EventArgs e) {
+            this.DoOnSelected(sender, (cont) => {
+                var effpar = new EffectParameters() {
+                    Duration = -1,
+                    Flags = EffectFlags.Cartesian | EffectFlags.ObjectIds,
+                    Gain = 100,
+                    SamplePeriod = 0,
+                    StartDelay = 0,
+                    TriggerButton = -1,
+                    TriggerRepeatInterval = 0,
+                    Envelope = null,
+
+                    Parameters = new ConstantForce() {
+                        Magnitude = 100,
+                    }
+                };
+                effpar.SetAxes(new int[1] { cont.FFBAxes[0] }, new int[1] { 1 });
+
+                Effect newE = new Effect(cont.joystick, EffectGuid.ConstantForce, effpar);
+
+                cont.RunExclusive(() => newE.Start());
+                logger.Info($"{newE.Status}");
+            });
+        }
+
+        private void button2_Click_1(object sender, EventArgs e) {
+            this.DoOnSelected(sender, (cont) => {
+                cont.SendFFBCommand(ForceFeedbackCommand.StopAll);
+                cont.SendFFBCommand(ForceFeedbackCommand.Reset);
+                cont.SendFFBCommand(ForceFeedbackCommand.SetActuatorsOn);
+                cont.SendFFBCommand(ForceFeedbackCommand.Continue);
+            });
+        }
+
+        private void button3_Click(object sender, EventArgs e) {
+            this.DoOnSelected(sender, (cont) => {
+                cont.SendFFBCommand(ForceFeedbackCommand.Pause);
+            });
+        }
+
+        private void button4_Click(object sender, EventArgs e) {
+            this.DoOnSelected(sender, (cont) => {
+                cont.SendFFBCommand(ForceFeedbackCommand.Continue);
+            });
+        }
+
+        private void button5_Click(object sender, EventArgs e) {
+            this.DoOnSelected(sender, (cont) => {
+                var x = cont.joystick.GetEffects();
+                foreach (var y in x) {
+                    logger.Info($"{y.Guid}, {y.Name}, {y.Type}");
+                }
+            });
         }
     }
 }

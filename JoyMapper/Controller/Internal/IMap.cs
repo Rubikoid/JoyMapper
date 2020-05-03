@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JoyMapper.FFB;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,5 +45,29 @@ namespace JoyMapper.Controller.Internal {
                 throw new Exception($"Too big button number");
             outState.buttons[this.outButton].setVal(inState.buttons[this.inButton].getVal());
         }
+    }
+
+    public class FFBMap : IMap {
+        // public VirtualController inVC { get; private set; }
+        public GameController outGC { get; private set; }
+
+        // axis on GC to apply FB
+        public int gcAxis { get; private set; }
+        // axis on VC to get FB
+        public int vcAxis { get; private set; }
+
+        public FFBMap(GameController outGC, int vcAxis, int gcAxis) {
+            this.outGC = outGC;
+            this.gcAxis = gcAxis;
+            this.vcAxis = vcAxis;
+        }
+
+        public void Map(in VirtualFFBPacket packet) {
+            this.outGC.HandleFFBPacket(packet);
+            return;
+        }
+
+        public void SetGC(int axis) { this.gcAxis = axis; }
+        public void Map(in State inState, ref State outState) { return; }
     }
 }

@@ -27,6 +27,7 @@ namespace JoyMapper.Controller.Internal {
             this.vc.joystick.GetVJDAxisMin(this.ID, this.axis, ref this._min_value);
             this.vc.joystick.GetVJDAxisMax(this.ID, this.axis, ref this._max_value);
             this.half_range = this._max_value / 2;
+            // this.vc.logger.Debug($"Loaded axis {axis} with value {this._min_value} -> {this._max_value}");
         }
 
         public int getVal() {

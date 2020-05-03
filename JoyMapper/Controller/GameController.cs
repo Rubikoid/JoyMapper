@@ -10,7 +10,7 @@ namespace JoyMapper.Controller {
     /**
      * A wrapper around the DirectInput Joystick class.
      **/
-    public class GameController : IController {
+    public partial class GameController : IController {
         private static Dictionary<JoystickOffset, JoystickCapabilities> joysticCapsMap = new Dictionary<JoystickOffset, JoystickCapabilities>
         {
             { JoystickOffset.X, JoystickCapabilities.AXIS_X },
@@ -23,7 +23,14 @@ namespace JoyMapper.Controller {
             { JoystickOffset.Sliders1, JoystickCapabilities.SLIDER_1 },
             { JoystickOffset.PointOfViewControllers0, JoystickCapabilities.POV },
         };
-
+        private NLog.Logger _logger = null;
+        private NLog.Logger logger {
+            get {
+                if (_logger == null)
+                    _logger = NLog.LogManager.GetLogger($"GCont_{ID.ToString().Substring(0, 3)}");
+                return _logger;
+            }
+        }
         public string Name { get; private set; }
         public bool Connected { get; private set; } = false;
 
@@ -50,6 +57,8 @@ namespace JoyMapper.Controller {
                 if (this.joystick == null)
                     this.joystick = new Joystick(GameController.directInput, this.ID);
                 this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
+
+                this.joystick.Properties.Range = new InputRange(-1 * (int)Math.Pow(2, 16), (int)Math.Pow(2, 16));
                 this.joystick.Properties.AxisMode = DeviceAxisMode.Absolute;
                 this.joystick.Properties.AutoCenter = false;
 
@@ -78,14 +87,14 @@ namespace JoyMapper.Controller {
                     this.joystick.Unacquire();
                     this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
                     this.joystick.Acquire();
+                    logger.Warn("Reaq joystic in exclusive mode because of idk why it brokes");
                     action();
-                    Console.WriteLine("Reaq joystic in exclusive mode because of idk why it brokes");
                 } else
                     throw ex;
             }
         }
 
-        public void SendForceFeedbackCommand(ForceFeedbackCommand FFBCommand) {
+        public void SendFFBCommand(ForceFeedbackCommand FFBCommand) {
             // this.SetCooperativeLevel(SharpDX.DirectInput.CooperativeLevel.Exclusive | SharpDX.DirectInput.CooperativeLevel.Background);
             this.RunExclusive(() => this.joystick.SendForceFeedbackCommand(FFBCommand));
         }
@@ -111,7 +120,6 @@ namespace JoyMapper.Controller {
             this.DirectionalPOVCount = this.joystick.Capabilities.PovCount; // shrug, i belive i don't need this shit
 
             FFBAxes = null;
-            this.joystick.Properties.Range = new InputRange(-1 * (int)Math.Pow(2, 16), (int)Math.Pow(2, 16));
             // Enumerate any axes
             foreach (DeviceObjectInstance doi in this.joystick.GetObjects()) {
                 // Console.WriteLine($"{doi.Name}\t\t{doi.ObjectId.Flags}\t\t{doi.ObjectType}");
@@ -141,7 +149,7 @@ namespace JoyMapper.Controller {
                     }
                 }
             }
-            Console.WriteLine($"Loaded axis: {string.Join(", ", FFBAxes.Select(x => x.ToString())) }");
+            logger.Info($"Loaded axis: {string.Join(", ", FFBAxes.Select(x => x.ToString())) }");
         }
 
         private void FillInternalInfo() {

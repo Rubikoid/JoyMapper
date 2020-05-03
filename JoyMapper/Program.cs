@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 namespace JoyMapper {
     static class Program {
-        private static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        public static NLog.Logger logger = NLog.LogManager.GetLogger("CoreLog");
 
         /// <summary>
         /// The main entry point for the application.
@@ -24,10 +24,12 @@ namespace JoyMapper {
             LoggingConfiguration config = new LoggingConfiguration();
 
             FileTarget logfile = new FileTarget("logfile") { FileName = "log.txt" };
+            logfile.Layout = "[${longdate}][${level:uppercase=true}][${logger}]    ${message}";
             ConsoleTarget logconsole = new ConsoleTarget("logconsole");
-            
-            config.AddRule(LogLevel.Debug, LogLevel.Fatal, logconsole);
-            config.AddRule(LogLevel.Debug, LogLevel.Fatal, logfile);
+            logconsole.Layout = "[${longdate}][${level:uppercase=true}][${logger}]    ${message}";
+
+            config.AddRule(LogLevel.Trace, LogLevel.Fatal, logconsole);
+            config.AddRule(LogLevel.Trace, LogLevel.Fatal, logfile);
             LogManager.Configuration = config;
 
 
@@ -38,6 +40,7 @@ namespace JoyMapper {
     }
 
     public static class Utils {
+        private static NLog.Logger logger = Program.logger;
         public static object CloneObject(object o) {
             Type t = o.GetType();
             PropertyInfo[] properties = t.GetProperties();
@@ -75,14 +78,14 @@ namespace JoyMapper {
 
                 bool is64 = System.Environment.Is64BitOperatingSystem;
                 string absoluteFolder = is64 ? LOAD_PATHS[1] : LOAD_PATHS[0];
-                Console.WriteLine($"Loading {assemblyFile} from {absoluteFolder} (is64={is64})");
+                logger.Info($"Loading {assemblyFile} from {absoluteFolder} (is64={is64})");
                 //string absoluteFolder = new FileInfo((new System.Uri(Assembly.GetExecutingAssembly().CodeBase)).LocalPath).Directory.FullName;
                 string targetPath = Path.Combine(absoluteFolder, assemblyFile);
 
                 try {
                     return Assembly.LoadFile(targetPath);
                 } catch (Exception ex) {
-                    Console.WriteLine($"Err: {ex}");
+                    logger.Fatal(ex, "File loading");
                     return null;
                 }
             };

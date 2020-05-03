@@ -14,7 +14,7 @@ namespace JoyMapper.Controller {
      * A wrapper around the vJoy Joystick class.
      **/
     public class VirtualController : IController {
-        private static Dictionary<FFBEType, Guid> virtualEffectGuidMap = new Dictionary<FFBEType, Guid>
+        public static Dictionary<FFBEType, Guid> virtualEffectGuidMap = new Dictionary<FFBEType, Guid>
         {
             { FFBEType.ET_NONE, EffectGuid.ConstantForce },
             { FFBEType.ET_CONST, EffectGuid.ConstantForce },
@@ -30,7 +30,7 @@ namespace JoyMapper.Controller {
             { FFBEType.ET_FRCTN, EffectGuid.Friction },
             { FFBEType.ET_CSTM, EffectGuid.CustomForce}
         };
-        private static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
+        public static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
         {
             { FFBEType.ET_CONST, 0x26 },
             { FFBEType.ET_RAMP, 0x27},
@@ -44,7 +44,14 @@ namespace JoyMapper.Controller {
             { FFBEType.ET_INRT, 0x42 },
             { FFBEType.ET_FRCTN, 0x43 }
         };
-
+        private NLog.Logger _logger = null;
+        public NLog.Logger logger {
+            get {
+                if (_logger == null)
+                    _logger = NLog.LogManager.GetLogger($"VContr_{ID}");
+                return _logger;
+            }
+        }
         public uint ID { get; private set; }
         public string Name { get { return $"vJoy[{ID}]"; } }
         public bool Connected { get; private set; } = false;
@@ -57,6 +64,7 @@ namespace JoyMapper.Controller {
 
         private State internalState { get; set; }
         public IList<IMap> Mappings { get; private set; } = new List<IMap>();
+        public int[] FFBAxes { get; private set; } = new int[] { 0, 1 };
 
         public event VirtualFFBPacketHandler.FFBDataReceiveEventHandler FFBDataReceived;
 
@@ -65,15 +73,25 @@ namespace JoyMapper.Controller {
         public VirtualController(uint ID) {
             this.ID = ID;
             this.joystick = new vJoy();
-            if (!joystick.vJoyEnabled()) {
-                Console.WriteLine("vJoy driver not enabled: Failed Getting vJoy attributes.");
-                return;
-            } else
-                Console.WriteLine("Vendor: {0}\nProduct :{1}\nVersion Number:{2}",
-                    joystick.GetvJoyManufacturerString(),
-                    joystick.GetvJoyProductString(),
-                    joystick.GetvJoySerialNumberString()
-                );
+            if (!ControllerCache.VCCheck) {
+                if (!joystick.vJoyEnabled()) {
+                    logger.Fatal("vJoy driver not enabled: Failed Getting vJoy attributes.");
+                    return;
+                } else
+                    logger.Info("Vendor: {0}; Product :{1}; Version Number:{2}",
+                        joystick.GetvJoyManufacturerString(),
+                        joystick.GetvJoyProductString(),
+                        joystick.GetvJoySerialNumberString()
+                    );
+
+                // check driver version against local DLL version
+                uint DllVer = 0, DrvVer = 0;
+                if (!this.joystick.DriverMatch(ref DllVer, ref DrvVer)) {
+                    logger.Error("Version of vJoy Driver ({0:X}) NOT MATCH NOT MATCH vJoy DLL Version ({1:X})", DrvVer, DllVer);
+                } else
+                    logger.Info("Version of vJoy Driver ({0:X}), vJoy DLL Version ({1:X})", DrvVer, DllVer);
+                ControllerCache.VCCheck = true;
+            }
         }
 
         public void Connect() {
@@ -82,35 +100,30 @@ namespace JoyMapper.Controller {
                 VjdStat status = this.joystick.GetVJDStatus(this.ID);
                 switch (status) {
                     case VjdStat.VJD_STAT_OWN:
-                        Console.WriteLine("vJoy Device {0} is already owned by this feeder", this.ID);
+                        logger.Warn("vJoy Device {0} is already owned by this feeder", this.ID);
                         break;
                     case VjdStat.VJD_STAT_FREE:
-                        Console.WriteLine("vJoy Device {0} is free", this.ID);
+                        logger.Info("vJoy Device {0} is free", this.ID);
                         break;
                     case VjdStat.VJD_STAT_BUSY:
-                        Console.WriteLine("vJoy Device {0} is already owned by another feeder\nCannot continue", this.ID);
+                        logger.Fatal("vJoy Device {0} is already owned by another feeder\nCannot continue", this.ID);
                         return;
                     case VjdStat.VJD_STAT_MISS:
-                        Console.WriteLine("vJoy Device {0} is not installed or disabled\nCannot continue", this.ID);
+                        logger.Fatal("vJoy Device {0} is not installed or disabled\nCannot continue", this.ID);
                         return;
                     default:
-                        Console.WriteLine("vJoy Device {0} general error\nCannot continue", this.ID);
+                        logger.Fatal("vJoy Device {0} general error\nCannot continue", this.ID);
                         return;
                 };
 
-                // check driver version against local DLL version
-                uint DllVer = 0, DrvVer = 0;
-                if (!this.joystick.DriverMatch(ref DllVer, ref DrvVer)) {
-                    Console.WriteLine("Version of vJoy Driver ({0:X}) NOT MATCH NOT MATCH vJoy DLL Version ({1:X})", DrvVer, DllVer);
-                } else
-                    Console.WriteLine("Version of vJoy Driver ({0:X}), vJoy DLL Version ({1:X})", DrvVer, DllVer);
                 this.loadCapabilities();
 
                 // now aquire the vJoy device
-                if ((status == VjdStat.VJD_STAT_OWN) || ((status == VjdStat.VJD_STAT_FREE) && (!joystick.AcquireVJD(this.ID))))
-                    Console.WriteLine("Failed to acquire vJoy device number {0}.", this.ID);
-                else
-                    Console.WriteLine("Acquired: vJoy device number {0}.", this.ID);
+                if ((status == VjdStat.VJD_STAT_OWN) || ((status == VjdStat.VJD_STAT_FREE) && (!joystick.AcquireVJD(this.ID)))) {
+                    logger.Fatal("Failed to acquire vJoy device number {0}.", this.ID);
+                    return;
+                } else
+                    logger.Info("Acquired: vJoy device number {0}.", this.ID);
 
                 if (this.SupportedFFBEffects.Count > 0) {
                     VirtualFFBPacketHandler.AddFFBHandler(this.ID, this.FFBDataReceivedHandler);
@@ -134,7 +147,7 @@ namespace JoyMapper.Controller {
                 this.joystick.ResetVJD(this.ID);
                 Thread.Sleep(1000);
                 this.joystick.RelinquishVJD(this.ID);
-                Console.WriteLine("Dropped: vJoy device number {0}.", this.ID);
+                logger.Info("Dropped: vJoy device number {0}.", this.ID);
                 this.Connected = false;
             }
         }
@@ -167,7 +180,7 @@ namespace JoyMapper.Controller {
             this.joystick.UpdateVJD(this.ID, ref state);
         }
 
-        private void loadCapabilities() {
+        public void loadCapabilities() {
             this.Capabilities = new List<JoystickCapabilities>();
 
             // Check which axes are supported
@@ -219,7 +232,6 @@ namespace JoyMapper.Controller {
         }
 
         public void FFBDataReceivedHandler(VirtualFFBPacket e) {
-            
             this.FFBDataReceived?.Invoke(e);
         }
     }

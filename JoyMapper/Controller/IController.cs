@@ -13,8 +13,7 @@ namespace JoyMapper.Controller {
             get {
                 if (_vc == null) {
                     _vc = new VirtualController(1);
-                    _vc.Connect(); // this is a little strange way, but i want do load all capbs of joystic but don't keep connection
-                    _vc.Disconnect();
+                    _vc.loadCapabilities();
                 }
                 return _vc;
             }
@@ -25,12 +24,13 @@ namespace JoyMapper.Controller {
             get {
                 if (_vc2 == null) {
                     _vc2 = new VirtualController(2);
-                    _vc2.Connect(); // this is a little strange way, but i want do load all capbs of joystic but don't keep connection
-                    _vc2.Disconnect();
+                    _vc2.loadCapabilities();
                 }
                 return _vc2;
             }
         }
+
+        public static bool VCCheck = false;
 
         public static Dictionary<string, GameController> controllerDictionary = new Dictionary<string, GameController>();
 

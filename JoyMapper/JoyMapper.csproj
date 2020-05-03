@@ -138,11 +138,14 @@
     <Compile Include="Controller\Internal\Button.cs" />
     <Compile Include="Controller\Internal\IMap.cs" />
     <Compile Include="Controller\Internal\State.cs" />
-    <Compile Include="FFB\FFBEventArgs.cs" />
     <Compile Include="Controller\IController.cs" />
+    <Compile Include="FFB\GameControllerFFBHandler.cs" />
+    <Compile Include="FFB\PhysicalFFBEffect.cs" />
+    <Compile Include="FFB\VirtualFFBEffect.cs" />
     <Compile Include="FFB\VirtualFFBPacket.cs" />
+    <Compile Include="FFB\VirtualFFBState.cs" />
     <Compile Include="Forms\ControllerMap.cs">
-      <SubType>Component</SubType>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\ControllerMap.Designer.cs">
       <DependentUpon>ControllerMap.cs</DependentUpon>

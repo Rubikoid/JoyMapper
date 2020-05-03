@@ -8,6 +8,8 @@ using vJoyInterfaceWrap;
 
 namespace JoyMapper.FFB {
     public static class VirtualFFBPacketHandler {
+        private static NLog.Logger logger = NLog.LogManager.GetLogger("VFFBPacket");
+
         public delegate void FFBDataReceiveEventHandler(VirtualFFBPacket e);
         public static event FFBDataReceiveEventHandler FFBDataReceived;
         private static FFBDataReceiveEventHandler[] handlers = new FFBDataReceiveEventHandler[16];
@@ -48,14 +50,25 @@ namespace JoyMapper.FFB {
 
         public static void ProcessFFBPacket(IntPtr data, object userData) {
             VirtualFFBPacket FFBPacket = new VirtualFFBPacket();
-            if (joystick.Ffb_h_Type(data, ref FFBPacket.FFBPType) == 0u) {
+            if (joystick.Ffb_h_Type(data, ref FFBPacket._FFBPType) == ERROR_SUCCESS) {
                 joystick.Ffb_h_DeviceID(data, ref FFBPacket.ID);
                 joystick.Ffb_h_EffNew(data, ref FFBPacket.FFBENextType);
-                switch (FFBPacket.FFBPType) {
+                switch (FFBPacket._FFBPType) {
                     case FFBPType.PT_EFFREP: // Effect Report (also named EFFECT_CONST)
-                        if (joystick.Ffb_h_Eff_Report(data, ref FFBPacket.FFB_EFF_REPORT) == 0u) {
+                        if (joystick.Ffb_h_Eff_Report(data, ref FFBPacket.FFB_EFF_REPORT) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = FFBPacket.FFB_EFF_REPORT.EffectBlockIndex;
+
+                            /*int num = 0;
+                            int num2 = 0;
+                            if (FFBPacket.FFB_EFF_REPORT.Polar) {
+                                Utils.GetDICartesianXY((int)FFBPacket.FFB_EFF_REPORT.DirX, ref num, ref num2);
+                            } else {
+                                num = (int)FFBPacket.FFB_EFF_REPORT.DirX;
+                                num2 = (int)FFBPacket.FFB_EFF_REPORT.DirY;
+                            }*/
+
                             StringBuilder dat = new StringBuilder();
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Report");
                             dat.AppendFormat($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Report\n");
                             dat.AppendFormat($"\t EBI={FFBPacket.FFB_EFF_REPORT.EffectBlockIndex}\n");
                             dat.AppendFormat($"\t Type={FFBPacket.FFB_EFF_REPORT.EffectType}\n");
@@ -67,20 +80,23 @@ namespace JoyMapper.FFB {
                             dat.AppendFormat($"\t Polar={FFBPacket.FFB_EFF_REPORT.Polar}\n");
                             dat.AppendFormat($"\t SamplePrd={FFBPacket.FFB_EFF_REPORT.SamplePrd}\n");
                             dat.AppendFormat($"\t TriggerBtn={FFBPacket.FFB_EFF_REPORT.TrigerBtn}\n");
-                            dat.AppendFormat($"\t TriggerRpt={FFBPacket.FFB_EFF_REPORT.TrigerRpt}\n");
-                            Console.WriteLine(dat.ToString());
+                            dat.AppendFormat($"\t TriggerRpt={FFBPacket.FFB_EFF_REPORT.TrigerRpt}");
+                            //dat.AppendFormat($"\t \n");
+                            //dat.AppendFormat($"\t DirX={num}; DirY={num2}\n");
+                            logger.Trace(dat.ToString());
                         }
                         break;
                     case FFBPType.PT_ENVREP: // Envelope Report
-                        if (joystick.Ffb_h_Eff_Envlp(data, ref FFBPacket.FFB_EFF_ENVLP) == 0u) {
+                        if (joystick.Ffb_h_Eff_Envlp(data, ref FFBPacket.FFB_EFF_ENVLP) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_ENVLP.EffectBlockIndex;
-                            Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Envelope Report");
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Envelope Report");
                         }
                         break;
                     case FFBPType.PT_CONDREP: // Condition Report !!
-                        if (joystick.Ffb_h_Eff_Cond(data, ref FFBPacket.FFB_EFF_COND) == 0u) {
+                        if (joystick.Ffb_h_Eff_Cond(data, ref FFBPacket.FFB_EFF_COND) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_COND.EffectBlockIndex;
                             StringBuilder dat = new StringBuilder();
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Condition Report\n");
                             dat.AppendFormat($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Condition Report\n");
                             dat.AppendFormat($"\t EBI={FFBPacket.FFB_EFF_COND.EffectBlockIndex}\n");
                             dat.AppendFormat($"\t Center={FFBPacket.FFB_EFF_COND.CenterPointOffset}\n");
@@ -90,68 +106,68 @@ namespace JoyMapper.FFB {
                             dat.AppendFormat($"\t NegSatur={FFBPacket.FFB_EFF_COND.NegSatur}\n");
                             dat.AppendFormat($"\t PosCoeff={FFBPacket.FFB_EFF_COND.PosCoeff}\n");
                             dat.AppendFormat($"\t PosSatur={FFBPacket.FFB_EFF_COND.PosSatur}\n");
-                            Console.WriteLine(dat);
+                            logger.Trace(dat);
                         }
                         break;
                     case FFBPType.PT_PRIDREP: // Periodic Report
-                        if (joystick.Ffb_h_Eff_Period(data, ref FFBPacket.FFB_EFF_PERIOD) == 0u) {
+                        if (joystick.Ffb_h_Eff_Period(data, ref FFBPacket.FFB_EFF_PERIOD) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_PERIOD.EffectBlockIndex;
-                            Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Periodic Report");
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Periodic Report");
                         }
                         break;
                     case FFBPType.PT_CONSTREP: // Constant Force Report 
-                        if (joystick.Ffb_h_Eff_Constant(data, ref FFBPacket.FFB_EFF_CONSTANT) == 0u) {
+                        if (joystick.Ffb_h_Eff_Constant(data, ref FFBPacket.FFB_EFF_CONSTANT) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_CONSTANT.EffectBlockIndex;
-                            Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Constant Force Report, magnitude={FFBPacket.FFB_EFF_CONSTANT.Magnitude}");
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Constant Force Report, magnitude={FFBPacket.FFB_EFF_CONSTANT.Magnitude}");
                         }
                         break;
                     case FFBPType.PT_RAMPREP: // Ramp Force Report 
-                        if (joystick.Ffb_h_Eff_Ramp(data, ref FFBPacket.FFB_EFF_RAMP) == 0u) {
+                        if (joystick.Ffb_h_Eff_Ramp(data, ref FFBPacket.FFB_EFF_RAMP) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_RAMP.EffectBlockIndex;
-                            Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Ramp Force Report");
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Ramp Force Report");
                         }
                         break;
                     case FFBPType.PT_CSTMREP: // Custom Force Data Report
-                        Console.WriteLine($"Custom Force Data Report");
+                        logger.Debug($"Custom Force Data Report");
                         break;
                     case FFBPType.PT_SMPLREP: // Download Force Sample
                         joystick.Ffb_h_EBI(data, ref FFBPacket.BlockIndex);
-                        Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Download Force Sample");
+                        logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Download Force Sample");
                         break;
                     case FFBPType.PT_EFOPREP: // Effect Operation Report
-                        if (joystick.Ffb_h_EffOp(data, ref FFBPacket.FFB_EFF_OP) == 0u) {
+                        if (joystick.Ffb_h_EffOp(data, ref FFBPacket.FFB_EFF_OP) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_OP.EffectBlockIndex;
-                            Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Operation Report loop={FFBPacket.FFB_EFF_OP.LoopCount} action={FFBPacket.FFB_EFF_OP.EffectOp}");
+                            logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Operation Report loop={FFBPacket.FFB_EFF_OP.LoopCount} action={FFBPacket.FFB_EFF_OP.EffectOp}");
                         }
                         break;
                     case FFBPType.PT_BLKFRREP: // PID Block Free Report
                         joystick.Ffb_h_EBI(data, ref FFBPacket.BlockIndex);
-                        Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] PID Block Free Report");
+                        logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] PID Block Free Report");
                         break;
                     case FFBPType.PT_CTRLREP: // PID Device Contro
                         joystick.Ffb_h_DevCtrl(data, ref FFBPacket.FFB_CTRL);
-                        Console.WriteLine($"[{FFBPacket.ID}][_] PID Device Control {FFBPacket.FFB_CTRL}");
+                        logger.Debug($"[{FFBPacket.ID}][_] PID Device Control {FFBPacket.FFB_CTRL}");
                         break;
                     case FFBPType.PT_GAINREP: // Device Gain Report
                         joystick.Ffb_h_DevGain(data, ref FFBPacket.Gain);
-                        Console.WriteLine($"[{FFBPacket.ID}][_] Device Gain Report={FFBPacket.Gain}");
+                        logger.Debug($"[{FFBPacket.ID}][_] Device Gain Report={FFBPacket.Gain}");
                         break;
                     case FFBPType.PT_SETCREP: // Set Custom Force Report
                         joystick.Ffb_h_EBI(data, ref FFBPacket.BlockIndex);
-                        Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Set Custom Force Report");
+                        logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Set Custom Force Report");
                         break;
                     case FFBPType.PT_NEWEFREP: // Create New Effect Report !!
                         joystick.Ffb_h_EBI(data, ref FFBPacket.BlockIndex);
                         joystick.Ffb_h_CreateNewEffect(data, ref FFBPacket.FFBENextType, ref FFBPacket.NextBlockIndex);
-                        Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Create New Effect Report, next={FFBPacket.FFBENextType}[{FFBPacket.NextBlockIndex}]");
+                        logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Create New Effect Report, next={FFBPacket.FFBENextType}[nextEBI={FFBPacket.NextBlockIndex}]");
                         break;
                     case FFBPType.PT_BLKLDREP: // Block Load Report
                         joystick.Ffb_h_EBI(data, ref FFBPacket.BlockIndex);
-                        Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Block Load Report");
+                        logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Block Load Report");
                         break;
                     case FFBPType.PT_POOLREP: // PID Pool Report
                         joystick.Ffb_h_EBI(data, ref FFBPacket.BlockIndex);
-                        Console.WriteLine($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] PID Pool Report");
+                        logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] PID Pool Report");
                         break;
                 }
                 FFBDataReceived?.Invoke(FFBPacket);
