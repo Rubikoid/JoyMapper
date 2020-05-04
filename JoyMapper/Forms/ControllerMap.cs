@@ -91,7 +91,7 @@ namespace JoyMapper {
                 FFBSettingComboBox_SelectedIndexChanged,
                 $"VCAxis={vcAxis}",
                 (cb) => {
-                    cb.data = vcAxis; 
+                    cb.data = vcAxis;
 
                     // axis on GC to send FFB
                     cb.Items.AddRange((this.controller as GameController).FFBAxes.Select(f => f.ToString()).ToArray());

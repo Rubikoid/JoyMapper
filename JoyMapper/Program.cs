@@ -28,7 +28,7 @@ namespace JoyMapper {
             ConsoleTarget logconsole = new ConsoleTarget("logconsole");
             logconsole.Layout = "[${longdate}][${level:uppercase=true}][${logger}]    ${message}";
 
-            config.AddRule(LogLevel.Trace, LogLevel.Fatal, logconsole);
+            config.AddRule(LogLevel.Debug, LogLevel.Fatal, logconsole);
             config.AddRule(LogLevel.Trace, LogLevel.Fatal, logfile);
             LogManager.Configuration = config;
 

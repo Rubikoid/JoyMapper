@@ -10,7 +10,7 @@ namespace JoyMapper.Controller.Internal {
         public uint ID { get; private set; }
         private VirtualController vc;
         private HID_USAGES axis;
-        
+
         private float _value { get; set; }
         public float raw_val { get { return _value; } set { _value = value; } }
 

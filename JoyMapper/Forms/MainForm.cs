@@ -175,7 +175,7 @@ namespace JoyMapper {
                 var effpar = new EffectParameters() {
                     Duration = -1,
                     Flags = EffectFlags.Cartesian | EffectFlags.ObjectIds,
-                    Gain = 100,
+                    Gain = 1567,
                     SamplePeriod = 0,
                     StartDelay = 0,
                     TriggerButton = -1,
@@ -183,7 +183,7 @@ namespace JoyMapper {
                     Envelope = null,
 
                     Parameters = new ConstantForce() {
-                        Magnitude = 100,
+                        Magnitude = 1462,
                     }
                 };
                 effpar.SetAxes(new int[1] { cont.FFBAxes[0] }, new int[1] { 1 });
@@ -223,6 +223,13 @@ namespace JoyMapper {
                     logger.Info($"{y.Guid}, {y.Name}, {y.Type}");
                 }
             });
+        }
+
+        private void timer1_Tick(object sender, EventArgs e) {
+            this.listBox1.Items.Clear();
+            foreach (var x in this.conrts.OfType<GameController>().First().FFBEffects) {
+                this.listBox1.Items.Add($"[{x.Parameters.Index}] {x.Parameters.Type.ToString()}, {x.Status}");
+            }
         }
     }
 }

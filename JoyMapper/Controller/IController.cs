@@ -18,7 +18,7 @@ namespace JoyMapper.Controller {
                 return _vc;
             }
         }
-        
+
         private static VirtualController _vc2;
         public static VirtualController vc2 {
             get {

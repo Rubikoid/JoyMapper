@@ -36,15 +36,25 @@ namespace JoyMapper.FFB {
             if (packet._FFBPType != FFBPType.PT_NEWEFREP && packet._FFBPType != FFBPType.PT_EFFREP)
                 return;
             if (this.Parameters.Index == 10000) {
-                this.Parameters.Type = VirtualController.virtualEffectGuidMap[packet.FFBENextType];
+                FFBEType type = FFBEType.ET_NONE;
+                if (packet._FFBPType == FFBPType.PT_NEWEFREP)
+                    type = packet.FFBENextType;
+                else
+                    type = packet.FFB_EFF_REPORT.EffectType;
+                this.Parameters.Type = VirtualController.virtualEffectGuidMap[type];
                 this.Parameters.Index = packet.BlockIndex;
-                switch (packet.FFBENextType) {
+                switch (type) {
                     case FFBEType.ET_CONST: {
-                        this.Parameters.Parameters = new ConstantForce();
+                        this.Parameters.Parameters = new ConstantForce() {
+                            Magnitude = 10000,
+                        };
                         break;
                     }
                     case FFBEType.ET_RAMP: {
-                        this.Parameters.Parameters = new RampForce();
+                        this.Parameters.Parameters = new RampForce() {
+                            Start = -10000,
+                            End = 10000,
+                        };
                         break;
                     }
                     case FFBEType.ET_SINE:
@@ -52,7 +62,12 @@ namespace JoyMapper.FFB {
                     case FFBEType.ET_STDN:
                     case FFBEType.ET_STUP:
                     case FFBEType.ET_TRNGL: {
-                        this.Parameters.Parameters = new PeriodicForce();
+                        this.Parameters.Parameters = new PeriodicForce() {
+                            Magnitude = 10000,
+                            Offset = 0,
+                            Period = 500000,
+                            Phase = 0
+                        };
                         break;
                     }
                     case FFBEType.ET_DMPR:
@@ -60,6 +75,15 @@ namespace JoyMapper.FFB {
                     case FFBEType.ET_INRT:
                     case FFBEType.ET_SPRNG: {
                         this.Parameters.Parameters = new ConditionSet();
+                        this.Parameters.Parameters.As<ConditionSet>().Conditions = new Condition[1];
+                        this.Parameters.Parameters.As<ConditionSet>().Conditions[0] = new Condition() {
+                            DeadBand = 0,
+                            NegativeCoefficient = 10000,
+                            NegativeSaturation = 10000,
+                            Offset = 0,
+                            PositiveCoefficient = 10000,
+                            PositiveSaturation = 10000
+                        };
                         break;
                     }
                     case FFBEType.ET_CSTM: { break; }
@@ -76,7 +100,7 @@ namespace JoyMapper.FFB {
             } else {
                 Parameters.Duration = (int)(packet.FFB_EFF_REPORT.Duration * 1000);
             }
-            Parameters.Gain = (int)packet.FFB_EFF_REPORT.Gain * 10000 / 255;
+            Parameters.Gain = (int)(packet.FFB_EFF_REPORT.Gain * (10000 / 255.0));
             Parameters.SamplePeriod = (int)(packet.FFB_EFF_REPORT.SamplePrd * 1000);
             Parameters.StartDelay = 0;
             Parameters.TriggerButton = (int)packet.FFB_EFF_REPORT.TrigerBtn;
@@ -88,7 +112,7 @@ namespace JoyMapper.FFB {
             Parameters.TriggerRepeatInterval = (int)(packet.FFB_EFF_REPORT.TrigerRpt * 1000);
             Parameters.Flags = (EffectFlags.ObjectIds | EffectFlags.Cartesian);
 
-            /* 
+            /*
                So there a very strange moment: vjoy always sends packet.FFB_EFF_REPORT.Polar is true.
                So, a solution also very strange and hacky.
             */
@@ -99,7 +123,7 @@ namespace JoyMapper.FFB {
                 // -1  + 0 = 24575
                 // 0   + 1 = 16383
                 // 0   +-1 = 0
-                // 
+                //
                 switch (packet.FFB_EFF_REPORT.Direction) {
                     case 0: {
                         Program.logger.Fatal($"RECIVED ZERO PACKET _START");
