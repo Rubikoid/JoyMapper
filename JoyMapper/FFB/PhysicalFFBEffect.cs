@@ -7,8 +7,16 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace JoyMapper.FFB {
+    public enum ForceType {
+        None,
+        Constant,
+        Ramp,
+        Periodic,
+        Condition
+    }
     public class PhysEffectParameters : SharpDX.DirectInput.EffectParameters {
         public Guid Type;
+        public ForceType FType = ForceType.None;
         public uint Index = 10000;
 
         //public Envelope Envelope;
@@ -45,16 +53,20 @@ namespace JoyMapper.FFB {
                 this.Parameters.Index = packet.BlockIndex;
                 switch (type) {
                     case FFBEType.ET_CONST: {
-                        this.Parameters.Parameters = new ConstantForce() {
-                            Magnitude = 10000,
-                        };
+                        if (this.Parameters.Parameters == null)
+                            this.Parameters.Parameters = new ConstantForce() {
+                                Magnitude = 10000,
+                            };
+                        this.Parameters.FType = ForceType.Constant;
                         break;
                     }
                     case FFBEType.ET_RAMP: {
-                        this.Parameters.Parameters = new RampForce() {
-                            Start = -10000,
-                            End = 10000,
-                        };
+                        if (this.Parameters.Parameters == null)
+                            this.Parameters.Parameters = new RampForce() {
+                                Start = -10000,
+                                End = 10000,
+                            };
+                        this.Parameters.FType = ForceType.Ramp;
                         break;
                     }
                     case FFBEType.ET_SINE:
@@ -62,28 +74,33 @@ namespace JoyMapper.FFB {
                     case FFBEType.ET_STDN:
                     case FFBEType.ET_STUP:
                     case FFBEType.ET_TRNGL: {
-                        this.Parameters.Parameters = new PeriodicForce() {
+                        if (this.Parameters.Parameters == null)
+                            this.Parameters.Parameters = new PeriodicForce() {
                             Magnitude = 10000,
                             Offset = 0,
                             Period = 500000,
                             Phase = 0
                         };
+                        this.Parameters.FType = ForceType.Periodic;
                         break;
                     }
                     case FFBEType.ET_DMPR:
                     case FFBEType.ET_FRCTN:
                     case FFBEType.ET_INRT:
                     case FFBEType.ET_SPRNG: {
-                        this.Parameters.Parameters = new ConditionSet();
-                        this.Parameters.Parameters.As<ConditionSet>().Conditions = new Condition[1];
-                        this.Parameters.Parameters.As<ConditionSet>().Conditions[0] = new Condition() {
-                            DeadBand = 0,
-                            NegativeCoefficient = 10000,
-                            NegativeSaturation = 10000,
-                            Offset = 0,
-                            PositiveCoefficient = 10000,
-                            PositiveSaturation = 10000
-                        };
+                        if (this.Parameters.Parameters == null) {
+                            this.Parameters.Parameters = new ConditionSet();
+                            this.Parameters.Parameters.As<ConditionSet>().Conditions = new Condition[1];
+                            this.Parameters.Parameters.As<ConditionSet>().Conditions[0] = new Condition() {
+                                DeadBand = 0,
+                                NegativeCoefficient = 10000,
+                                NegativeSaturation = 10000,
+                                Offset = 0,
+                                PositiveCoefficient = 10000,
+                                PositiveSaturation = 10000
+                            };
+                        }
+                        this.Parameters.FType = ForceType.Condition;
                         break;
                     }
                     case FFBEType.ET_CSTM: { break; }
@@ -166,6 +183,39 @@ namespace JoyMapper.FFB {
             }
             Parameters.Directions[0] = num;
             Parameters.Directions[1] = num2; */
+        }
+
+        public override string ToString() {
+            string x = "";
+            switch (Parameters.FType) {
+                case ForceType.Condition: {
+                    ConditionSet set = Parameters.Parameters.As<ConditionSet>();
+                    x = $"offset={set.Conditions[0].Offset}";
+                    break;
+                }
+                case ForceType.Constant: {
+                    ConstantForce force = Parameters.Parameters.As<ConstantForce>();
+                    x = $"mag={force.Magnitude}";
+                    break;
+                }
+                case ForceType.Periodic: {
+                    PeriodicForce force = Parameters.Parameters.As<PeriodicForce>();
+                    x = $"mag={force.Magnitude}, peri={force.Period}";
+                    break;
+                }
+                case ForceType.Ramp: {
+                    RampForce force = Parameters.Parameters.As<RampForce>();
+                    x = $"start={force.Start}, end={force.End}";
+                    break;
+                }
+                default: x = "FF"; break;
+            }
+            try {
+                return $"[{Parameters.Index}] {VirtualController.virtualEffectGuidMapToString[Parameters.Type]}, {Object?.Status}, {Parameters.FType}, {x}";
+            } catch (Exception ex) {
+                Program.logger.Warn($"Generating phys.toString() error = {ex}");
+                return "";
+            }
         }
 
         public void UpdateEffectStatus() {

@@ -44,6 +44,7 @@ namespace JoyMapper.Controller {
                             FFBEffects[eID].Object?.Dispose();
                             FFBEffects[eID].Object = new Effect(this.joystick, FFBEffects[eID].Parameters.Type, FFBEffects[eID].Parameters);
                         }
+                        FFBEffects[eID].Object.Start();
                     } catch (Exception ex) {
                         logger.Warn($"Effect ebi={eID + 1} creation error {ex}");
                     }
@@ -57,8 +58,9 @@ namespace JoyMapper.Controller {
                     if (FFBEffects[eID].Parameters.Parameters == null)
                         FFBEffects[eID].Parameters.Parameters = new ConstantForce();
                     FFBEffects[eID].Parameters.Parameters.As<ConstantForce>().Magnitude = packet.FFB_EFF_CONSTANT.Magnitude;
-                    if (FFBEffects[eID].Object != null)
-                        FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters);
+                    if (FFBEffects[eID].Object != null) {
+                        FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters, EffectParameterFlags.TypeSpecificParameters);
+                    }
                     break;
                 }
                 case FFBPType.PT_CONDREP: {
@@ -80,7 +82,7 @@ namespace JoyMapper.Controller {
                         set.Conditions[0].Offset = packet.FFB_EFF_COND.CenterPointOffset;
                     }
                     if (FFBEffects[eID].Object != null) {
-                        //FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters);
+                        FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters, EffectParameterFlags.TypeSpecificParameters);
                     }
                     break;
                 }
@@ -97,7 +99,7 @@ namespace JoyMapper.Controller {
                     force.Period = (int)packet.FFB_EFF_PERIOD.Period;
                     force.Phase = (int)packet.FFB_EFF_PERIOD.Phase;
                     if (FFBEffects[eID].Object != null) {
-                        //FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters);
+                        FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters, EffectParameterFlags.TypeSpecificParameters);
                     }
                     break;
                 }
@@ -112,7 +114,7 @@ namespace JoyMapper.Controller {
                     force.Start = packet.FFB_EFF_RAMP.Start;
                     force.End = packet.FFB_EFF_RAMP.End;
                     if (FFBEffects[eID].Object != null) {
-                        //FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters);
+                        FFBEffects[eID].Object.SetParameters(FFBEffects[eID].Parameters, EffectParameterFlags.TypeSpecificParameters);
                     }
                     break;
                 }
@@ -153,9 +155,9 @@ namespace JoyMapper.Controller {
                             for (int i = 0; i < this.FFBEffects.Length; i++) {
                                 if (FFBEffects[i] != null) {
                                     FFBEffects[i].UpdateEffectStatus();
-                                    if (FFBEffects[i].Status == FFB.EffectStatus.Playing && FFBEffects[i].Parameters.TriggerButton == -1)
-                                        if (FFBEffects[i] != null)
-                                            FFBEffects[i].Object?.Stop();
+                                    //if (FFBEffects[i].Status == FFB.EffectStatus.Playing && FFBEffects[i].Parameters.TriggerButton == -1)
+                                    if (FFBEffects[i] != null)
+                                        FFBEffects[i].Object?.Stop();
                                 }
                             }
                             break;
@@ -163,12 +165,12 @@ namespace JoyMapper.Controller {
                         case FFB_CTRL.CTRL_DEVRST: {
                             for (int i = 0; i < this.FFBEffects.Length; i++) {
                                 if (FFBEffects[i] != null) {
-                                    FFBEffects[i].UpdateEffectStatus();
-                                    if (FFBEffects[i].Status == FFB.EffectStatus.Playing && FFBEffects[i].Parameters.TriggerButton == -1)
-                                        if (FFBEffects[i] != null) {
-                                            FFBEffects[i].Dispose();
-                                            FFBEffects[i] = null;
-                                        }
+                                    //FFBEffects[i].UpdateEffectStatus();
+                                    //if (FFBEffects[i].Status == FFB.EffectStatus.Playing && FFBEffects[i].Parameters.TriggerButton == -1)
+                                    if (FFBEffects[i] != null) {
+                                        FFBEffects[i].Dispose();
+                                        FFBEffects[i] = null;
+                                    }
                                 }
                             }
                             break;
@@ -178,7 +180,7 @@ namespace JoyMapper.Controller {
                     break;
                 }
                 case FFBPType.PT_GAINREP: {
-                    this.RunExclusive(() => { this.joystick.Properties.ForceFeedbackGain = packet.Gain * (10000 / 255); });
+                    this.RunExclusive(() => { this.joystick.Properties.ForceFeedbackGain = (int)(packet.Gain * (10000 / 255.0)); });
                     break;
                 }
                 default:

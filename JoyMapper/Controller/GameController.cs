@@ -58,10 +58,15 @@ namespace JoyMapper.Controller {
                     this.joystick = new Joystick(GameController.directInput, this.ID);
                 this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
 
-                this.joystick.Properties.Range = new InputRange(-1 * (int)Math.Pow(2, 16), (int)Math.Pow(2, 16));
-                this.joystick.Properties.AxisMode = DeviceAxisMode.Absolute;
-                this.joystick.Properties.AutoCenter = false;
+                try {
+                    // this.joystick.Properties.Range = new InputRange(-1 * (int)Math.Pow(2, 16), (int)Math.Pow(2, 16));
+                    this.joystick.Properties.AxisMode = DeviceAxisMode.Absolute;
 
+                    this.joystick.Properties.AutoCenter = false;
+                }
+                catch(Exception ex) {
+                    logger.Warn($"Initializing joystic error {ex}");
+                }
                 this.joystick.Acquire();
                 this.loadCapabilities();
                 this.Connected = true;
@@ -149,7 +154,10 @@ namespace JoyMapper.Controller {
                     }
                 }
             }
-            logger.Info($"Loaded axis: {string.Join(", ", FFBAxes.Select(x => x.ToString())) }");
+            if(FFBAxes != null)
+                logger.Info($"Loaded axis: {string.Join(", ", FFBAxes.Select(x => x.ToString())) }");
+            else
+                logger.Info($"Loaded axis: NONE");
         }
 
         private void FillInternalInfo() {

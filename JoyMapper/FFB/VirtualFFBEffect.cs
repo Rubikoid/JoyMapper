@@ -19,7 +19,7 @@ namespace JoyMapper.FFB {
     class VirtualFFBEffect {
         public DateTime CreationTime;
         public DateTime UpdateTime;
-        public DateTime TypeSpecificUpdateTime;
+        // public DateTime TypeSpecificUpdateTime;
         public DateTime BaseUpdateTime;
         public DateTime StartTime;
         public DateTime StopTime;

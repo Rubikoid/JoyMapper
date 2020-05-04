@@ -30,6 +30,21 @@ namespace JoyMapper.Controller {
             { FFBEType.ET_FRCTN, EffectGuid.Friction },
             { FFBEType.ET_CSTM, EffectGuid.CustomForce}
         };
+        public static Dictionary<Guid, string> virtualEffectGuidMapToString = new Dictionary<Guid, string>
+        {
+            { EffectGuid.ConstantForce, "ConstantForce"},
+            { EffectGuid.RampForce, "RampForce"},
+            { EffectGuid.Square, "Square"},
+            { EffectGuid.Sine, "Sine"},
+            { EffectGuid.Triangle, "Triangle"},
+            { EffectGuid.SawtoothUp, "SawtoothUp"},
+            { EffectGuid.SawtoothDown, "SawtoothDown"},
+            { EffectGuid.Spring, "Spring"},
+            { EffectGuid.Damper, "Damper"},
+            { EffectGuid.Inertia, "Inertial"},
+            { EffectGuid.Friction, "Friction"},
+            { EffectGuid.CustomForce, "CustomForce"}
+        };
         public static Dictionary<FFBEType, UInt32> virtualEffectUInt32Map = new Dictionary<FFBEType, UInt32>
         {
             { FFBEType.ET_CONST, 0x26 },

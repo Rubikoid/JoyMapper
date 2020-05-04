@@ -85,9 +85,10 @@ namespace JoyMapper {
             }
 
             // int x in (this.controller as GameController).FFBAxes
-            foreach (int vcAxis in ControllerCache.vc.FFBAxes) {
-                // axisN - axis on VC to get FFB
-                SettingPanel newPanel = new SettingPanel(
+            if ((this.controller as GameController).FFBAxes != null && (this.controller as GameController).FFBAxes.Length > 0) {
+                foreach (int vcAxis in ControllerCache.vc.FFBAxes) {
+                    // axisN - axis on VC to get FFB
+                    SettingPanel newPanel = new SettingPanel(
                 FFBSettingComboBox_SelectedIndexChanged,
                 $"VCAxis={vcAxis}",
                 (cb) => {
@@ -104,8 +105,9 @@ namespace JoyMapper {
                     if (aMap != null)
                         cb.SelectedItem = aMap.gcAxis.ToString();
                 });
-                this.panels.Add(newPanel);
-                this.FFBGroup.Controls.Add(newPanel.Setting);
+                    this.panels.Add(newPanel);
+                    this.FFBGroup.Controls.Add(newPanel.Setting);
+                }
             }
         }
 

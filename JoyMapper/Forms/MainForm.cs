@@ -23,6 +23,7 @@ namespace JoyMapper {
         private BindingList<FFBEvent> data = new BindingList<FFBEvent>() { };
         private BindingList<FFBEvent> data2 = new BindingList<FFBEvent>() { };
         private IEnumerable<IController> conrts;
+        private GameController FFBController;
 
         public MainForm() {
             InitializeComponent();
@@ -44,6 +45,7 @@ namespace JoyMapper {
 
         private void DoWork(object data) {
             conrts = data as IEnumerable<IController>;
+            FFBController = this.conrts.OfType<GameController>().Where(x => x.FFBAxes.Length > 0).First();
             try {
                 logger.Info("Connecting to controllers");
                 foreach (IController gc in conrts) gc.Connect();
@@ -54,7 +56,7 @@ namespace JoyMapper {
                     State ins = new State(ControllerCache.vc, ControllerCache.vc.ButtonCount);
                     foreach (IController gc in conrts) gc.FillExternalInfo(ref ins);
                     ControllerCache.vc.UpdateInfo(ins);
-                    ControllerCache.vc2.UpdateInfo(ins);
+                    // ControllerCache.vc2.UpdateInfo(ins);
                     Thread.Sleep(20);
                 }
             } catch (ThreadAbortException) {
@@ -83,6 +85,7 @@ namespace JoyMapper {
             this.StopBtn.Enabled = true;
             this.bg_thread = new Thread(this.DoWork);
             this.bg_thread.Start(controllers);
+            this.timer1.Start();
         }
 
         private void button2_Click(object sender, EventArgs e) {
@@ -90,6 +93,7 @@ namespace JoyMapper {
             //this.GameControllers.Enabled = true;
             this.StartBtn.Enabled = true;
             this.StopBtn.Enabled = false;
+            this.timer1.Stop();
             // GameController c = this.cboGameController.SelectedValue as GameController;
         }
 
@@ -227,9 +231,9 @@ namespace JoyMapper {
 
         private void timer1_Tick(object sender, EventArgs e) {
             this.listBox1.Items.Clear();
-            foreach (var x in this.conrts.OfType<GameController>().First().FFBEffects) {
-                this.listBox1.Items.Add($"[{x.Parameters.Index}] {x.Parameters.Type.ToString()}, {x.Status}");
-            }
+            foreach (var x in FFBController.FFBEffects)
+                if (x != null)
+                    this.listBox1.Items.Add(x.ToString());
         }
     }
 }

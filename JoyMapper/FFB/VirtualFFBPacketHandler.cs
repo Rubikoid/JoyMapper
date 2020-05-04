@@ -151,7 +151,7 @@ namespace JoyMapper.FFB {
                     case FFBPType.PT_EFOPREP: // Effect Operation Report
                         if (joystick.Ffb_h_EffOp(data, ref FFBPacket.FFB_EFF_OP) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_OP.EffectBlockIndex;
-                            // logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Operation Report loop={FFBPacket.FFB_EFF_OP.LoopCount} action={FFBPacket.FFB_EFF_OP.EffectOp}");
+                            logger.Trace($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Operation Report loop={FFBPacket.FFB_EFF_OP.LoopCount} action={FFBPacket.FFB_EFF_OP.EffectOp}");
                         }
                         break;
                     case FFBPType.PT_BLKFRREP: // PID Block Free Report
