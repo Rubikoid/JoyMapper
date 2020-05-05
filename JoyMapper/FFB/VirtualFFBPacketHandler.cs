@@ -1,8 +1,10 @@
 ﻿using JoyMapper.Controller;
+using Priority_Queue;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using vJoyInterfaceWrap;
 
@@ -20,6 +22,8 @@ namespace JoyMapper.FFB {
 
         private static vJoy joystick;
 
+        private static SimplePriorityQueue<VirtualFFBPacket> packets = new SimplePriorityQueue<VirtualFFBPacket>();
+        private static Thread FFBThread = null;
         public static void Init() {
             joystick = ControllerCache.vc.joystick;
             joystick.FfbRegisterGenCB(FFBPacketCallback, null);
@@ -43,12 +47,48 @@ namespace JoyMapper.FFB {
             handlers[id]?.Invoke(e);
         }
 
-        public static void FFBPacketCallback(IntPtr data, object userData) {
-            if (data != IntPtr.Zero)
-                Task.Run(() => { ProcessFFBPacket(data, userData); });
+        public static void RunFFBThread() {
+            if (FFBThread == null) {
+                FFBThread = new Thread(FFBProcessingThread);
+                FFBThread.Start();
+            }
         }
 
-        public static void ProcessFFBPacket(IntPtr data, object userData) {
+        public static void StopFFBThread() {
+            if (FFBThread != null) {
+                FFBThread.Abort();
+                FFBThread = null;
+            }
+        }
+
+        public static void FFBProcessingThread() {
+            try {
+                logger.Info("Starting FFBProcThread");
+                while (true) {
+                    while (packets.Count > 0) {
+                        FFBDataReceived?.Invoke(packets.Dequeue());
+                        // Thread.Sleep(10);
+                    }
+                    Thread.Sleep(20);
+                }
+            } catch (ThreadAbortException) {
+                logger.Info("Stopping FFBProcThread");
+            } catch (Exception ex) {
+                logger.Warn($"FFBProcThread WTF {ex}");
+            } finally {
+                packets.Clear();
+            }
+        }
+
+        public static void FFBPacketCallback(IntPtr data, object userData) {
+            if (data != IntPtr.Zero)
+                Task.Run(() => {
+                    VirtualFFBPacket packet = ProcessFFBPacket(data, userData);
+                    packets.Enqueue(packet, packet.GetPriority());
+                });
+        }
+
+        public static VirtualFFBPacket ProcessFFBPacket(IntPtr data, object userData) {
             VirtualFFBPacket FFBPacket = new VirtualFFBPacket();
             if (joystick.Ffb_h_Type(data, ref FFBPacket._FFBPType) == ERROR_SUCCESS) {
                 joystick.Ffb_h_DeviceID(data, ref FFBPacket.ID);
@@ -184,9 +224,10 @@ namespace JoyMapper.FFB {
                         logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] PID Pool Report");
                         break;
                 }
-                FFBDataReceived?.Invoke(FFBPacket);
+                // FFBDataReceived?.Invoke(FFBPacket);
+                return FFBPacket;
             }
-            return;
+            return null;
         }
     }
 }

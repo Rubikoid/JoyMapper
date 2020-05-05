@@ -23,15 +23,18 @@ namespace JoyMapper {
 
             LoggingConfiguration config = new LoggingConfiguration();
 
-            FileTarget logfile = new FileTarget("logfile") { FileName = "log.txt" };
+            FileTarget logfile = new FileTarget("logfile") { FileName = $"log_{DateTime.Now.ToString()}.txt" };
             logfile.Layout = "[${longdate}][${level:uppercase=true}][${logger}]    ${message}";
             ConsoleTarget logconsole = new ConsoleTarget("logconsole");
             logconsole.Layout = "[${longdate}][${level:uppercase=true}][${logger}]    ${message}";
 
-            /*config.AddRule(LogLevel.Trace, LogLevel.Fatal, logconsole);
-            config.AddRule(LogLevel.Trace, LogLevel.Fatal, logfile);*/
+            //config.AddRule(LogLevel.Trace, LogLevel.Fatal, logconsole);
+            //config.AddRule(LogLevel.Debug, LogLevel.Fatal, logconsole);
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
+
+            //config.AddRule(LogLevel.Trace, LogLevel.Fatal, logfile);
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
+
             LogManager.Configuration = config;
 
 

@@ -36,7 +36,7 @@ namespace JoyMapper.Controller {
 
         public static void Update(Action<string, GameController> callback) {
             foreach (GameController controller in GameController.GetAll()) {
-                if (!controllerDictionary.ContainsKey(controller.ID.ToString())) {
+                if (!controllerDictionary.ContainsKey(controller.ToString())) {
                     controllerDictionary.Add(controller.ToString(), controller);
                     callback(controller.ToString(), controller);
                 }

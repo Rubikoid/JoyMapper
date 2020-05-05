@@ -89,6 +89,39 @@ namespace JoyMapper.FFB {
             return dat.ToString();
         }
 
+        // a place for optimizations to dictinary?
+        public int GetPriority() {
+            switch (this._FFBPType) {
+                // control must be the first
+                case FFBPType.PT_BLKLDREP:
+                case FFBPType.PT_BLKFRREP:
+                case FFBPType.PT_POOLREP:
+                case FFBPType.PT_GAINREP:
+                case FFBPType.PT_CTRLREP:
+                    return 1;
+                // new effect the second
+                case FFBPType.PT_NEWEFREP:
+                    return 2;
+                // effect report (and effect creation the third
+                case FFBPType.PT_EFFREP:
+                    return 3;
+                // conditions and force updates
+                case FFBPType.PT_CONDREP:
+                case FFBPType.PT_PRIDREP:
+                case FFBPType.PT_CONSTREP:
+                case FFBPType.PT_RAMPREP:
+                    return 4;
+                // effect operatio
+                case FFBPType.PT_EFOPREP:
+                    return 4;
+                default:
+                    return 8;
+                // envolve not implemented, so 8.
+                //case FFBPType.PT_ENVREP:
+                //    return 8;
+            }
+        }
+
         public VirtualFFBPacket() {
             this.CreationTime = DateTime.Now;
         }

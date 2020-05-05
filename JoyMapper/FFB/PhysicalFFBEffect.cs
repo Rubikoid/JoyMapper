@@ -210,12 +210,12 @@ namespace JoyMapper.FFB {
                 }
                 default: x = "FF"; break;
             }
-            try {
+            //try {
                 return $"[{Parameters.Index}] {VirtualController.virtualEffectGuidMapToString[Parameters.Type]}, {Object?.Status}, {Parameters.FType}, {x}";
-            } catch (Exception ex) {
-                Program.logger.Warn($"Generating phys.toString() error = {ex}");
-                return "";
-            }
+            //} catch (Exception ex) {
+            //    Program.logger.Warn($"Generating phys.toString() error = {ex}");
+            //    return "";
+            //}
         }
 
         public void UpdateEffectStatus() {
