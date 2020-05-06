@@ -52,6 +52,7 @@ namespace JoyMapper.Controller {
         public Joystick joystick = null;
         private static DirectInput directInput = new DirectInput();
 
+        private static bool Exclusive = false;
         public void Connect() {
             if (!this.Connected) {
                 if (this.joystick == null)
@@ -92,6 +93,7 @@ namespace JoyMapper.Controller {
                     this.joystick.Unacquire();
                     this.SetCooperativeLevel(CooperativeLevel.Exclusive | CooperativeLevel.Background);
                     this.joystick.Acquire();
+                    Exclusive = true;
                     logger.Warn("Reaq joystic in exclusive mode because of idk why it brokes");
                     action();
                 } else

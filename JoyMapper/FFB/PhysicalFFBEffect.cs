@@ -44,7 +44,7 @@ namespace JoyMapper.FFB {
             if (packet._FFBPType != FFBPType.PT_NEWEFREP && packet._FFBPType != FFBPType.PT_EFFREP)
                 return;
             if (this.Parameters.Index == 10000) {
-                FFBEType type = FFBEType.ET_NONE;
+                FFBEType type;
                 if (packet._FFBPType == FFBPType.PT_NEWEFREP)
                     type = packet.FFBENextType;
                 else
@@ -105,6 +105,15 @@ namespace JoyMapper.FFB {
                     }
                     case FFBEType.ET_CSTM: { break; }
                 }
+
+                Parameters.Duration = -1;
+                Parameters.Gain = 10000;
+                Parameters.SamplePeriod = 0;
+                Parameters.StartDelay = 0;
+                Parameters.TriggerButton = -1;
+                Parameters.TriggerRepeatInterval = 0;
+                Parameters.Flags = (EffectFlags.ObjectIds | EffectFlags.Cartesian);
+                Parameters.Directions = new int[1] { 1 };
             }
         }
 
@@ -120,7 +129,6 @@ namespace JoyMapper.FFB {
             Parameters.Gain = (int)(packet.FFB_EFF_REPORT.Gain * (10000 / 255.0));
             Parameters.SamplePeriod = (int)(packet.FFB_EFF_REPORT.SamplePrd * 1000);
             Parameters.StartDelay = 0;
-            Parameters.TriggerButton = (int)packet.FFB_EFF_REPORT.TrigerBtn;
             if (packet.FFB_EFF_REPORT.TrigerBtn == 255) {
                 Parameters.TriggerButton = -1;
             } else {
@@ -216,18 +224,6 @@ namespace JoyMapper.FFB {
             //    Program.logger.Warn($"Generating phys.toString() error = {ex}");
             //    return "";
             //}
-        }
-
-        public void UpdateEffectStatus() {
-            if (this.Status != EffectStatus.None && this.Status == EffectStatus.Playing && this.Parameters.Duration != -1) {
-                double totalSeconds = (DateTime.Now - this.StartTime).TotalSeconds;
-                double num = (double)this.Parameters.Duration / 1000000.0;
-                if (totalSeconds >= num) {
-                    this.Status = EffectStatus.Expired;
-                    this.StopTime = this.StartTime;
-                    this.StopTime = this.StopTime.AddSeconds(num);
-                }
-            }
         }
 
         public PhysicalFFBEffect() {

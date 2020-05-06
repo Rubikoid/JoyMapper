@@ -13,7 +13,6 @@ namespace JoyMapper.FFB {
         private static NLog.Logger logger = NLog.LogManager.GetLogger("VFFBPacket");
 
         public delegate void FFBDataReceiveEventHandler(VirtualFFBPacket e);
-        public static event FFBDataReceiveEventHandler FFBDataReceived;
         private static FFBDataReceiveEventHandler[] handlers = new FFBDataReceiveEventHandler[16];
 
         private const uint ERROR_SUCCESS = 0x0;
@@ -24,10 +23,11 @@ namespace JoyMapper.FFB {
 
         private static SimplePriorityQueue<VirtualFFBPacket> packets = new SimplePriorityQueue<VirtualFFBPacket>();
         private static Thread FFBThread = null;
+        private static ManualResetEvent newDataEvent = new ManualResetEvent(false);
+
         public static void Init() {
             joystick = ControllerCache.vc.joystick;
             joystick.FfbRegisterGenCB(FFBPacketCallback, null);
-            FFBDataReceived += FFBDataReceivedHandler;
         }
 
         public static void AddFFBHandler(uint joyId, FFBDataReceiveEventHandler handler) {
@@ -40,11 +40,6 @@ namespace JoyMapper.FFB {
             if (joyId >= 16)
                 return;
             handlers[joyId] = null;
-        }
-
-        private static void FFBDataReceivedHandler(VirtualFFBPacket e) {
-            uint id = e.ID;
-            handlers[id]?.Invoke(e);
         }
 
         public static void RunFFBThread() {
@@ -66,10 +61,13 @@ namespace JoyMapper.FFB {
                 logger.Info("Starting FFBProcThread");
                 while (true) {
                     while (packets.Count > 0) {
-                        FFBDataReceived?.Invoke(packets.Dequeue());
-                        // Thread.Sleep(10);
+                        VirtualFFBPacket packet = packets.Dequeue();
+                        handlers[packet.ID]?.Invoke(packet);
+                        //FFBDataReceived?.Invoke(packets.Dequeue());
+                        //Thread.Sleep(1);
                     }
-                    Thread.Sleep(20);
+                    Thread.Sleep(100);
+                    //newDataEvent.WaitOne();
                 }
             } catch (ThreadAbortException) {
                 logger.Info("Stopping FFBProcThread");
@@ -92,38 +90,12 @@ namespace JoyMapper.FFB {
             VirtualFFBPacket FFBPacket = new VirtualFFBPacket();
             if (joystick.Ffb_h_Type(data, ref FFBPacket._FFBPType) == ERROR_SUCCESS) {
                 joystick.Ffb_h_DeviceID(data, ref FFBPacket.ID);
-                joystick.Ffb_h_EffNew(data, ref FFBPacket.FFBENextType);
                 switch (FFBPacket._FFBPType) {
                     case FFBPType.PT_EFFREP: // Effect Report (also named EFFECT_CONST)
                         if (joystick.Ffb_h_Eff_Report(data, ref FFBPacket.FFB_EFF_REPORT) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = FFBPacket.FFB_EFF_REPORT.EffectBlockIndex;
-
-                            /*int num = 0;
-                            int num2 = 0;
-                            if (FFBPacket.FFB_EFF_REPORT.Polar) {
-                                Utils.GetDICartesianXY((int)FFBPacket.FFB_EFF_REPORT.DirX, ref num, ref num2);
-                            } else {
-                                num = (int)FFBPacket.FFB_EFF_REPORT.DirX;
-                                num2 = (int)FFBPacket.FFB_EFF_REPORT.DirY;
-                            }*/
-
-                            StringBuilder dat = new StringBuilder();
                             logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Report");
-                            dat.AppendFormat($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Effect Report\n");
-                            dat.AppendFormat($"\t EBI={FFBPacket.FFB_EFF_REPORT.EffectBlockIndex}\n");
-                            dat.AppendFormat($"\t Type={FFBPacket.FFB_EFF_REPORT.EffectType}\n");
-                            dat.AppendFormat($"\t Dir={FFBPacket.FFB_EFF_REPORT.Direction}\n");
-                            dat.AppendFormat($"\t DirX={FFBPacket.FFB_EFF_REPORT.DirX}\n");
-                            dat.AppendFormat($"\t DirY={FFBPacket.FFB_EFF_REPORT.DirY}\n");
-                            dat.AppendFormat($"\t Duration={FFBPacket.FFB_EFF_REPORT.Duration}\n");
-                            dat.AppendFormat($"\t Gain={FFBPacket.FFB_EFF_REPORT.Gain}\n");
-                            dat.AppendFormat($"\t Polar={FFBPacket.FFB_EFF_REPORT.Polar}\n");
-                            dat.AppendFormat($"\t SamplePrd={FFBPacket.FFB_EFF_REPORT.SamplePrd}\n");
-                            dat.AppendFormat($"\t TriggerBtn={FFBPacket.FFB_EFF_REPORT.TrigerBtn}\n");
-                            dat.AppendFormat($"\t TriggerRpt={FFBPacket.FFB_EFF_REPORT.TrigerRpt}");
-                            //dat.AppendFormat($"\t \n");
-                            //dat.AppendFormat($"\t DirX={num}; DirY={num2}\n");
-                            logger.Trace(dat.ToString());
+                            logger.Trace(FFBPacket.GenerateEffectInfo());
                         }
                         break;
                     case FFBPType.PT_ENVREP: // Envelope Report
@@ -135,8 +107,8 @@ namespace JoyMapper.FFB {
                     case FFBPType.PT_CONDREP: // Condition Report !!
                         if (joystick.Ffb_h_Eff_Cond(data, ref FFBPacket.FFB_EFF_COND) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_COND.EffectBlockIndex;
-                            StringBuilder dat = new StringBuilder();
                             logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Condition Report");
+                            StringBuilder dat = new StringBuilder();
                             dat.AppendFormat($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Condition Report\n");
                             dat.AppendFormat($"\t EBI={FFBPacket.FFB_EFF_COND.EffectBlockIndex}\n");
                             dat.AppendFormat($"\t Center={FFBPacket.FFB_EFF_COND.CenterPointOffset}\n");
@@ -152,8 +124,8 @@ namespace JoyMapper.FFB {
                     case FFBPType.PT_PRIDREP: // Periodic Report
                         if (joystick.Ffb_h_Eff_Period(data, ref FFBPacket.FFB_EFF_PERIOD) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_PERIOD.EffectBlockIndex;
-                            StringBuilder dat = new StringBuilder();
                             logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Periodic Report");
+                            StringBuilder dat = new StringBuilder();
                             dat.AppendFormat($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Periodic Report\n");
                             dat.AppendFormat($"\t EBI={FFBPacket.FFB_EFF_PERIOD.EffectBlockIndex}\n");
                             dat.AppendFormat($"\t Magnitude={FFBPacket.FFB_EFF_PERIOD.Magnitude}\n");
@@ -172,8 +144,8 @@ namespace JoyMapper.FFB {
                     case FFBPType.PT_RAMPREP: // Ramp Force Report
                         if (joystick.Ffb_h_Eff_Ramp(data, ref FFBPacket.FFB_EFF_RAMP) == ERROR_SUCCESS) {
                             FFBPacket.BlockIndex = (uint)FFBPacket.FFB_EFF_RAMP.EffectBlockIndex;
-                            StringBuilder dat = new StringBuilder();
                             logger.Debug($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Ramp Force Report");
+                            StringBuilder dat = new StringBuilder();
                             dat.AppendFormat($"[{FFBPacket.ID}][EBI={FFBPacket.BlockIndex}] Ramp Force Report\n");
                             dat.AppendFormat($"\t EBI={FFBPacket.FFB_EFF_RAMP.EffectBlockIndex}\n");
                             dat.AppendFormat($"\t Start={FFBPacket.FFB_EFF_RAMP.Start}\n");

@@ -102,7 +102,7 @@ namespace JoyMapper.FFB {
                 // new effect the second
                 case FFBPType.PT_NEWEFREP:
                     return 2;
-                // effect report (and effect creation the third
+                // effect report, and effect creation the third
                 case FFBPType.PT_EFFREP:
                     return 3;
                 // conditions and force updates
@@ -113,7 +113,7 @@ namespace JoyMapper.FFB {
                     return 4;
                 // effect operatio
                 case FFBPType.PT_EFOPREP:
-                    return 4;
+                    return 5;
                 default:
                     return 8;
                 // envolve not implemented, so 8.

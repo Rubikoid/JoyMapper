@@ -24,7 +24,9 @@ namespace JoyMapper {
         private BindingList<FFBEvent> data = new BindingList<FFBEvent>() { };
         private BindingList<FFBEvent> data2 = new BindingList<FFBEvent>() { };
         private IEnumerable<IController> conrts;
-        private GameController FFBController;
+
+        private ManualResetEvent evt = new ManualResetEvent(false);
+
 
         public MainForm() {
             InitializeComponent();
@@ -46,16 +48,16 @@ namespace JoyMapper {
 
         private void DoWork(object data) {
             conrts = data as IEnumerable<IController>;
-            //FFBController = this.conrts.OfType<GameController>().Where(x => x.FFBAxes.Length > 0 && x.Name.Contains("Ard")).First();
             try {
                 logger.Info("Connecting to controllers");
                 foreach (IController gc in conrts) gc.Connect();
                 VirtualFFBPacketHandler.RunFFBThread();
                 ControllerCache.vc.Connect();
-                //ControllerCache.vc2.Connect();
+                ControllerCache.vc2.Connect();
                 logger.Info("Connecting to vjoy");
+                //evt.WaitOne();
+                State ins = new State(ControllerCache.vc, ControllerCache.vc.ButtonCount);
                 while (true) {
-                    State ins = new State(ControllerCache.vc, ControllerCache.vc.ButtonCount);
                     foreach (IController gc in conrts) gc.FillExternalInfo(ref ins);
                     ControllerCache.vc.UpdateInfo(ins);
                     // ControllerCache.vc2.UpdateInfo(ins);
@@ -69,7 +71,7 @@ namespace JoyMapper {
                 foreach (IController gc in conrts) gc.Disconnect();
                 ControllerCache.vc.Disconnect();
                 VirtualFFBPacketHandler.StopFFBThread();
-                //ControllerCache.vc2.Disconnect();
+                ControllerCache.vc2.Disconnect();
                 logger.Info("Disconnected from controllers");
             }
         }
@@ -92,7 +94,9 @@ namespace JoyMapper {
         }
 
         private void button2_Click(object sender, EventArgs e) {
-            this.bg_thread?.Abort();
+            evt.Set();
+            //Thread.Sleep(200);
+            //this.bg_thread?.Abort();
             //this.GameControllers.Enabled = true;
             this.StartBtn.Enabled = true;
             this.StopBtn.Enabled = false;
@@ -256,8 +260,7 @@ namespace JoyMapper {
                     if (x != null) {
                         try {
                             y.RunExclusive(() => { this.listBox1.Items.Add(x.ToString()); });
-                        }
-                        catch(Exception ex) {
+                        } catch (Exception ex) {
                             logger.Warn($"Getting effect info error {ex}");
                         }
                     }

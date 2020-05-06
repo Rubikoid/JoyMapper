@@ -15,7 +15,9 @@ namespace JoyMapper.Controller.Internal {
             this.ID = vc.ID;
 
         }
-
+        public void Reset() {
+            this._value = false;
+        }
         public bool getVal() {
             return this._value;
         }

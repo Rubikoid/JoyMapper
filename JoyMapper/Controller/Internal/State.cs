@@ -30,6 +30,10 @@ namespace JoyMapper.Controller.Internal {
                 this.buttons.Add(new Button(vc));
         }
 
+        public void Reset() {
+
+        }
+
         public Axis getAxis(JoystickCapabilities cap) {
             switch (cap) {
                 case JoystickCapabilities.AXIS_X: return this.AxisX;

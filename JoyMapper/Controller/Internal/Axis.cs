@@ -30,6 +30,10 @@ namespace JoyMapper.Controller.Internal {
             // this.vc.logger.Debug($"Loaded axis {axis} with value {this._min_value} -> {this._max_value}");
         }
 
+        public void Reset() {
+            this._value = 0;
+        }
+
         public int getVal() {
             int ret = (int)(this.half_range + this.half_range * this._value);
             //Console.WriteLine($"[G] {this.axis.ToString()} {ret}");
